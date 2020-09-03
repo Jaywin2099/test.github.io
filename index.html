@@ -1,0 +1,2126 @@
+<!--# test.github.io
+Project Website-->
+<!DOCTYPE html>
+<!--if Oh Noes says the javascript is taking too long to run, try restarting a couple times
+Note that this is not by any means an exhaustive explanation of either SVG or Canvas; I've barely delved into some topics. Most of this was written for use on KA (though naturally you can translate it off to projects off KA).
+
+Credit to Bluebird for the awesome save function used to get a better thumbnail-->
+
+<html>
+    <head>
+        <meta charset="utf-8">
+        <title>Creating Graphics in Webpages | Tutorial</title>
+        
+        <!--loading fonts-->
+        <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@300&family=Italiana&family=Source+Code+Pro&display=swap" rel="stylesheet">
+        
+        <!--styling-->
+        <style>
+            @keyframes fadeout {
+                from {
+                    opacity: 1;
+                    display: block;
+                }
+                to {
+                    opacity: 0;
+                }
+            }
+            @keyframes fadein {
+                from {
+                    opacity: 0;
+                    display: none;
+                }
+                to {
+                    opacity: 1;
+                    display: block;
+                }
+            }
+            
+            /*general styling*/
+            body {
+                margin: 0;
+                padding: 0;
+                font-family: "Open Sans", sans-serif, "Arial";
+            }
+            div {
+                box-sizing: border-box;
+            }
+            
+            /*general page styling*/
+            .page {
+                position: absolute;
+                top: 0;
+            }
+            
+            /*font styling*/
+            h1, h2, h3, .diamondSVG {
+                font-family: "Italiana", "Times New Roman", serif, cursive;
+                letter-spacing: 1px;
+            }
+            code {
+                font-family: "Source Code Pro", monospace;
+                font-size: 0.85em;
+            }
+            
+            /*homepage nav styling*/
+            nav {
+                position: absolute;
+                top: 0;
+                width: 100%;
+                margin: 0;
+                padding: 10px 20px;
+                box-sizing: border-box;
+                display: flex;
+                flex-direction: row;
+                justify-content: flex-end;
+                z-index: 20;
+                background-color: rgba(250, 250, 250, 0.5);
+                background-image: linear-gradient(rgba(255, 255, 255, 1), rgba(250, 250, 250, 1), rgba(250, 250, 250, 0));
+                list-style: none;
+            }
+            nav ul {
+                margin: 0;
+                padding: 0;
+            }
+            nav > ul > li {
+                display: inline-block;
+                margin: 0px 10px;
+            }
+            nav > ul > li > span {
+                position: relative;
+                letter-spacing: 1px;
+                padding: 5px 8px;
+                color: rgb(97, 97, 97);
+                transition: 0.2s ease;
+            }
+            nav > ul > li span::after {
+                content: "";
+                position: absolute;
+                display: block;
+                width: 0%;
+                height: 1px;
+                background: rgb(179, 179, 179);
+                left: 0;
+                bottom: -1px;
+                transition: inherit;
+            }
+            
+            /*nav li hover states*/
+            nav > ul > li:hover span::after {
+                width: 100%;
+            }
+            nav > ul > li:hover span {
+                cursor: pointer;
+                color: rgb(138, 138, 138);
+            }
+            
+            /*active nav li styling*/
+            nav > ul > li.active {
+                pointer-events: none;
+            }
+            nav > ul > li.active span {
+                color: rgb(158, 172, 181);
+                border-bottom: 1px dotted;
+            }
+            
+            /*nav dropdowns styling*/
+            nav > ul > li div {
+                position: relative;
+                padding-top: 15px;
+            }
+            nav ul.dropDown {
+                position: absolute;
+                display: block;
+                right: 0;
+                top: 100%;
+                width: 120px;
+                padding: 0;
+                background: rgba(255, 255, 255, 0.95);
+                box-shadow: 0 5px 10px rgba(0, 0, 0, 0.3);
+                font-size: 0.8em;
+                list-style: none;
+                opacity: 0;
+                visibility: hidden;
+                transition: 0.4s ease;
+            }
+            nav ul.dropDown li:first-of-type {
+                padding-top: 8px;
+            }
+            nav ul.dropDown li:last-of-type {
+                padding-bottom: 8px;
+            }
+            nav ul.dropDown li {
+                padding: 4px 5px;
+                transition: 0.2s ease;
+            }
+            nav ul.dropDown li:hover {
+                cursor: pointer;
+                background: rgb(221, 235, 235);
+            }
+            nav > ul > li:hover ul.dropDown {
+                visibility: visible;
+                opacity: 1;
+            }
+            
+            /*title styling*/
+            #title {
+                background-image: linear-gradient(-50deg, rgba(0, 174, 227, 0.3), transparent, transparent);
+                position: relative;
+                width: 100%;
+                height: 100vh;
+                padding: 20px 70px;
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                text-align: left;
+                color: rgb(97, 97, 97);
+            }
+            #titleSVG {
+                background: rgb(247, 247, 247);
+                position: fixed;
+                top: 0;
+                right: 0;
+                width: 100%;
+                height: 100vh;
+                z-index: -1;
+            }
+            #title h1 {
+                background: linear-gradient(90deg, rgba(247, 247, 247, 1), rgba(247, 247, 247, 1), transparent);
+                position: relative;
+                padding: 30px 0;
+                margin: 20px 0;
+                z-index: 1;
+            }
+            #title h1::after {
+                content: "";
+                display: block;
+                position: absolute;
+                width: 30px;
+                height: 3px;
+                bottom: 0;
+                background: rgb(99, 99, 99);
+            }
+            #title h2 {
+                position: relative;
+                font-weight: normal;
+                font-size: 1em;
+                z-index: 1;
+            }
+            
+            /*paragraph after title styling*/
+            #contentIntro {
+                background-color: rgb(168, 81, 65); 
+                color: white;
+            }
+            #listOfWays {
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                flex-direction: horizontal;
+                margin-bottom: 25px;
+            }
+            #listOfWays svg {
+                min-width: 120px;
+                width: 150px;
+                font-size: 34px;
+                margin-right: 20px;
+                text-shadow: none;
+            }
+            
+            /*stylistic/decorative svg styling*/
+            .diamondSVG {
+                margin: 0 auto;
+                margin-bottom: 10px;
+                display: block;
+                position: relative;
+                width: 100px;
+                font-weight: bold;
+                text-shadow: 3px 1.5px rgb(247, 247, 247);
+                text-anchor: middle;
+            }
+            
+            /*section title (homepage) styling*/
+            .sectionTitle {
+                position: relative;
+                padding: 70px 20px 65px 20px;
+                text-align: right;
+                background: rgba(0, 0, 0, 0.4);
+            }
+            .sectionTitle#canvasTitle {
+                text-align: left;
+            }
+            .sectionTitle::after {
+                content: "";
+                display: block;
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background-image: linear-gradient(90deg, rgba(0, 0, 0, 0.25), rgba(230, 87, 87, 0.5));
+                z-index: 0;
+            }
+            .sectionTitle#canvasTitle::after {
+                background-image: linear-gradient(90deg, rgba(0, 173, 212, 0.3), rgba(230, 87, 87, 0.4));
+            }
+            .fixedBackgroundSVG {
+                position: absolute;
+                top: 0;
+                left: 0;
+                z-index: 0;
+                width: 100%;
+                height: 100%;
+            }
+            .sectionTitle h2 {
+                position: relative;
+                display: inline;
+                color: white;
+                text-shadow: 0 0 3px;
+                z-index: 1;
+                font-size: 2.3em;
+                padding-bottom: 5px;
+            }
+            .sectionTitle h2::after {
+                position: absolute;
+                content: "";
+                display: block;
+                box-shadow: 0 0 3px;
+                background: white;
+                width: 170%;
+                height: 1.5px;
+                right: 0;
+                bottom: 0;
+            }
+            .sectionTitle#canvasTitle h2::after {
+                left: 0;
+            }
+            
+            /*pros/cons table (homepage) styling*/
+            .prosCons {
+                display: flex;
+                flex-wrap: wrap;
+            }
+            .prosCons div {
+                flex: 1 1 200px;
+                margin: 0 10px;
+            }
+            .prosCons div h3 {
+                text-align: center;
+            }
+            
+            /*homepage links (to article pages) styling*/
+            .homePageLinks {
+                position: relative;
+                padding: 8px 20px;
+                padding-right: 30px;
+                box-shadow: 0 0 10px rgb(199, 199, 199);
+                margin: 20px 0;
+                border-left: 3px solid rgb(50, 154, 168);
+                overflow: hidden;
+                transition: 0.3s ease;
+            }
+            .homePageLinks:hover {
+                transform: scale(1.02, 1.02);
+            }
+            .homePageLinks h3 {
+                margin-top: 10px;
+            }
+            .homePageLinks svg {
+                position: absolute;
+                height: 100%;
+                max-height: 100px;
+                top: 50%;
+                right: 0;
+                transform: translate(50%, -50%);
+                opacity: 0.6;
+            }
+            
+            /*references styling*/
+            #references {
+                background: rgb(92, 144, 153);
+                color: white;
+            }
+            
+            /*footer styling*/
+            footer {
+                position: relative;
+                z-index: 3;
+                width: 100%;
+                text-align: center;
+                padding: 10px 0;
+                background: rgb(55, 110, 120);
+                outline: 2px solid rgb(55, 110, 120);
+                outline-offset: 3px;
+                font-size: 0.8em;
+            }
+            footer a {
+                border-bottom-style: dotted;
+            }
+            
+            /*general content styling*/
+            .content {
+                position: relative;
+                padding: 20px 50px;
+                background: rgb(255, 255, 255);
+                z-index: 2;
+            }
+            .content h3 {
+                margin-bottom: 0;
+                font-weight: bold;
+                font-size: 1.3em;
+                color: rgb(92, 92, 92);
+            }
+            .content ul {
+                margin: 5px auto 15px auto;
+            }
+            .content li {
+                margin: 6px 0;
+                list-style: circle;
+            }
+            
+            /*general link styling*/
+            a, .ipageLink, .pageLink {
+                position: relative;
+                text-decoration: none;
+                color: rgb(62, 160, 173);
+                border-bottom: 1.5px solid rgba(62, 160, 173, 0.2);
+                transition: 0.2s ease;
+            }
+            a.light, .ipageLink.light, .pageLink.light {
+                color: white;
+                border-bottom-color: rgba(255, 255, 255, 0.2);
+            }
+            a:hover, .ipageLink:hover, .pageLink:hover {
+                cursor: pointer;
+                border-bottom-color: rgba(62, 160, 173, 0.8);
+            }
+            a.light:hover, .ipageLink.light:hover, .pageLink.light:hover {
+                border-bottom-color: rgba(255, 255, 255, 0.8);
+            }
+            
+            /*code blocks styling*/
+            .content code, .content pre {
+                background: rgb(240, 240, 240);
+                padding: 1px 3px;
+                border-radius: 3px;
+            }
+            .content pre code {
+                background: transparent;
+            }
+            .content pre {
+                word-wrap: break-word;
+                overflow-wrap: anywhere;
+                white-space: pre-wrap;
+                padding: 5px 10px;
+            }
+            
+            /*article page styling*/
+            .articlePage {
+                min-height: 100vh;
+                padding: 0 0 0 80px;
+                background-color: rgb(61, 139, 145);
+                background-image: linear-gradient(rgb(52, 131, 138), rgb(148, 90, 75));
+                background-attachment: fixed;
+                background-position: center center;
+            }
+            .articlePage .content {
+                min-height: 100vh;
+                outline: 2px solid white;
+                outline-offset: 3px;
+            }
+            .articlePage .content h2 {
+                font-size: 1.8em;
+            }
+            .articlePage .content h3 {
+                font-size: 1.5em;
+                margin-top: 35px;
+            }
+            .articlePage .content h3 + p {
+                margin-top: 10px;
+            }
+            .articlePage .content .exampleSVG, .articlePage .content .exampleCanvas {
+                display: block;
+                margin: 0 auto;
+            }
+            .articlePage .content .exampleSVG #exampleHoverCircle {
+                transition: 1s ease;
+            }
+            .articlePage .content .exampleSVG #exampleHoverCircle:hover {
+                cursor: pointer;
+                stroke-dasharray: 16px 0;
+                fill: rgb(230, 89, 174);
+            }
+            
+            /*article page button hover styling*/
+            .articlePage .arrowButton {
+                fill: transparent;
+                stroke: rgba(255, 255, 255, 0.8);
+                position: fixed;
+                left: 20px;
+                transition: 0.2s ease;
+            }
+            .articlePage .arrowButton.grayout {
+                pointer-events: none;
+                stroke: rgba(157, 186, 201, 0.8);
+            }
+            .articlePage .arrowButton:hover {
+                cursor: pointer;
+                stroke: white;
+            }
+            .articlePage .arrowButton.homeButton:hover {
+                fill: white;
+            }
+            
+            /*thumbnail styling*/
+            #thumbnail {
+                position: relative;
+                z-index: 20;
+                width: 100%;
+                height: 100vw;
+                display: none;
+                background-image: url('https://upload.wikimedia.org/wikipedia/commons/thumb/5/5d/Sunset_in_the_Himalayas.jpg/1024px-Sunset_in_the_Himalayas.jpg');
+                background-position: center center;
+                flex-direction: column;
+                justify-content: center;
+                text-align: center;
+                font-size: 1.2em;
+            }
+            #thumbnail div {
+                background: rgba(0, 0, 0, 0.5);
+                color: white;
+                padding: 30px 40px;
+            }
+            #thumbnail h1 {
+                padding-bottom: 25px;
+                border-bottom: 1px solid;
+            }
+        </style>
+    </head>
+    
+    <!--all content-->
+    <body>
+        <!--main page-->
+        <div class = "page" id = "homePage">
+            <!--the nav-->
+            <nav id = "homePageNav">
+                <ul>
+                    <li class = "active"><span>home</span></li>
+                    <li><span>svg</span></li>
+                    <li><span>canvas</span></li>
+                </ul>
+            </nav>
+            
+            <!--title-->
+            <div id = "title">
+                <svg viewBox = '-10 0 460 300' preserveAspectRatio = "xMaxYMin slice" id = "titleSVG">
+                    <!--defs for this and other homepage graphics-->
+                    <defs>
+                        <!--a (rotated) stripe pattern-->
+                        <g id = "stripePattern" transform = "rotate(26.5) scale(0.5)">
+                            <rect x = '1' y = '-3' width = '2.5' height = '20'/>
+                            <rect x = '10' y = '-7' width = '2.5' height = '25'/>
+                            <rect x = '19' y = '-8' width = '2.5' height = '25'/>
+                        </g>
+                        
+                        <!--patterns for stripes based on fill color-->
+                        <pattern id = "whiteStripes" x = "0" y = "0" width = "10" height = "10" patternUnits = "userSpaceOnUse">
+                            <use href = "#stripePattern" fill = "rgb(255, 255, 255)"/>
+                        </pattern>
+                        <pattern id = "redStripes" x = "0" y = "0" width = "10" height = "10" patternUnits = "userSpaceOnUse">
+                            <use href = "#stripePattern" fill = "rgb(242, 139, 121)"/>
+                        </pattern>
+                        <pattern id = "blueStripes" x = "0" y = "0" width = "10" height = "10" patternUnits = "userSpaceOnUse">
+                            <use href = "#stripePattern" fill = "rgb(93, 179, 179)"/>
+                        </pattern>
+                        
+                        <!--general diamond shape-->
+                        <g id = "diamond">
+                            <path d = "M 0, -30 L 30, 0 L 0, 30 L -30, 0 Z"/>
+                        </g>
+                        
+                        <!--pros and cons diamonds-->
+                        <g id = "prosDiamond">
+                            <g opacity = "0.6">
+                                <use href = "#diamond" transform = "translate(25, 25) scale(0.8)" fill = "url('#redStripes')"/>
+                                <use href = "#diamond" transform = "translate(19, 25) scale(0.8)" fill = "transparent" stroke = "rgb(242, 139, 121)" stroke-width = "2px"/>
+                            </g>
+                            <text x = "20" y = "29" fill = "rgb(242, 139, 121)" font-size = "15px">Pros</text>
+                        </g>
+                        <g id = "consDiamond">
+                            <g opacity = "0.6">
+                                <use href = "#diamond" transform = "translate(25, 25) scale(0.8)" fill = "url('#blueStripes')"/>
+                                <use href = "#diamond" transform = "translate(19, 25) scale(0.8)" fill = "transparent" stroke = "rgb(93, 179, 179)" stroke-width = "2px"/>
+                            </g>
+                            <text x = "20" y = "29" fill = "rgb(93, 179, 179)" font-size = "14px">Cons</text>
+                        </g>
+                        
+                        <!--section title graphic-->
+                        <g id = "sectionTitleGraphic">
+                            <!--background red diamonds-->
+                            <g fill = "rgb(219, 102, 79)">
+                                <use href = "#diamond" transform = "translate(9, 158) scale(1.9)"/>
+                                <use href = "#diamond" transform = "translate(57, 66) scale(1.1)" opacity = "0.8"/>
+                                <use href = "#diamond" transform = "translate(144, 198) scale(1.4)" opacity = "0.8"/>
+                                <use href = "#diamond" transform = "translate(159, 15) scale(1.7)" opacity = "1"/>
+                                <use href = "#diamond" transform = "translate(257, 110) scale(1.3)" opacity = "0.6"/>
+                                <use href = "#diamond" transform = "translate(88, 193) scale(2.7)" opacity = "0.2"/>
+                                <use href = "#diamond" transform = "translate(21, 23) scale(3.0)" opacity = "0.9"/>
+                                <use href = "#diamond" transform = "translate(357, 138) scale(0.8)" opacity = "0.2"/>
+                            </g>
+                            
+                            <!--middleground blue diamonds-->
+                            <g fill = "rgb(146, 210, 212)">
+                                <use href = "#diamond" transform = "translate(123, 182) scale(1.0)"/>
+                                <use href = "#diamond" transform = "translate(237, 131) scale(0.7)" opacity = "0.8"/>
+                                <use href = "#diamond" transform = "translate(99, 23) scale(1.8)" opacity = "1"/>
+                                <use href = "#diamond" transform = "translate(14, 94) scale(1.3)" opacity = "0.9"/>
+                                <use href = "#diamond" transform = "translate(300, 48) scale(0.5)" opacity = "0.9"/>
+                                <use href = "#diamond" transform = "translate(278, 194) scale(1.6)" opacity = "0.5"/>
+                                <use href = "#diamond" transform = "translate(197, 146) scale(1.9)" opacity = "0.5"/>
+                                <use href = "#diamond" transform = "translate(156, 90) scale(0.9)" opacity = "0.8"/>
+                            </g>
+                            
+                            <!--foreground two red diamonds-->
+                            <g fill = "rgb(219, 102, 79)">
+                                <use href = "#diamond" transform = "translate(146, 138) scale(1.2)" opacity = "1"/>
+                                <use href = "#diamond" transform = "translate(78, 18) scale(0.7)" opacity = "0.8"/>
+                            </g>
+                            
+                            <!--striped diamonds in front-->
+                            <g fill = "url(#redStripes)">
+                                <use href = "#diamond" transform = "translate(94, 120) scale(1.4)"/>
+                                <use href = "#diamond" transform = "translate(306, 175) scale(0.6)"/>
+                                <use href = "#diamond" transform = "translate(215, 29) scale(1.0)"/>
+                            </g>
+                            <g fill = "url(#blueStripes)">
+                                <use href = "#diamond" transform = "translate(246, 215) scale(2.0)"/>
+                                <use href = "#diamond" transform = "translate(449, 92) scale(1.0)"/>
+                            </g>
+                        </g>
+                    </defs>
+                    
+                    <!--background red diamonds-->
+                    <g fill = "rgb(219, 102, 79)">
+                        <use href = "#diamond" transform = "translate(319, 158) scale(1.9)"/>
+                        <use href = "#diamond" transform = "translate(363, 66) scale(1.4)" opacity = "0.8"/>
+                        <use href = "#diamond" transform = "translate(409, 198) scale(1.4)" opacity = "0.8"/>
+                        <use href = "#diamond" transform = "translate(238, 299) scale(1.8)" opacity = "1"/>
+                        <use href = "#diamond" transform = "translate(347, 262) scale(1.3)" opacity = "0.6"/>
+                        <use href = "#diamond" transform = "translate(269, 193) scale(2.7)" opacity = "0.2"/>
+                        <use href = "#diamond" transform = "translate(466, 117) scale(2.3)" opacity = "0.9"/>
+                    </g>
+                    
+                    <!--middleground blue diamonds-->
+                    <g fill = "rgb(146, 210, 212)">
+                        <use href = "#diamond" transform = "translate(356, 189) scale(1.0)"/>
+                        <use href = "#diamond" transform = "translate(263, 256) scale(0.7)" opacity = "0.8"/>
+                        <use href = "#diamond" transform = "translate(425, 273) scale(2.7)" opacity = "1"/>
+                        <use href = "#diamond" transform = "translate(305, 317) scale(1.3)" opacity = "0.9"/>
+                        <use href = "#diamond" transform = "translate(424, 130) scale(0.5)" opacity = "0.9"/>
+                        <use href = "#diamond" transform = "translate(134, 270) scale(1.6)" opacity = "0.5"/>
+                        <use href = "#diamond" transform = "translate(380, 104) scale(1.9)" opacity = "0.5"/>
+                        <use href = "#diamond" transform = "translate(417, 35) scale(0.9)" opacity = "0.8"/>
+                    </g>
+                    
+                    <!--foreground two red diamonds-->
+                    <g fill = "rgb(219, 102, 79)">
+                        <use href = "#diamond" transform = "translate(414, 263) scale(0.6)" opacity = "1"/>
+                        <use href = "#diamond" transform = "translate(264, 109) scale(0.7)" opacity = "0.8"/>
+                    </g>
+                    
+                    <!--striped diamonds in the foreground-->
+                    <g fill = "url(#redStripes)">
+                        <use href = "#diamond" transform = "translate(359, 120) scale(1.4)"/>
+                        <use href = "#diamond" transform = "translate(284, 238) scale(1.1)"/>
+                        <use href = "#diamond" transform = "translate(408, 10) scale(1.0)"/>
+                    </g>
+                    <g fill = "url(#blueStripes)">
+                        <use href = "#diamond" transform = "translate(387, 224) scale(2.0)"/>
+                        <use href = "#diamond" transform = "translate(462, 92) scale(1.0)"/>
+                        <use href = "#diamond" transform = "translate(181, 318) scale(1.1)"/>
+                    </g>
+                </svg>
+                <h1>Graphics in a Webpage</h1>
+                <h2>an introductory tutorial</h2>
+            </div>
+            
+            <!--introductory paragraph-->
+            <section>
+                <div class = "content" id = "contentIntro">
+                    <!--list of ways-->
+                    <div id = "listOfWays">
+                        <svg viewBox = "-7 0 56 50" class = "diamondSVG">
+                            <!--background-->
+                            <g opacity = "0.6">
+                                <use href = "#diamond" transform = "translate(25, 25) scale(0.8)" fill = "url('#whiteStripes')"/>
+                                <use href = "#diamond" transform = "translate(19, 25) scale(0.8)" fill = "transparent" stroke = "white" stroke-width = "2px"/>
+                            </g>
+                            
+                            <!--number (with "shadow" made by other text elements-->
+                            <g transform = "translate(-1, 1.0)" font-family = "Times New Roman">
+                                <g fill = "rgb(168, 81, 65)" transform = "translate(7, 0)">
+                                    <text x = "16" y = "34">3</text>
+                                    <text x = "14.9" y = "35.5">3</text>
+                                </g>
+                                <text x = "20" y = "34" fill = "white">3</text>
+                            </g>
+                        </svg>
+                        <div>
+                            <h3 style = "font-size: 1.5em; color: white; margin: 0; margin-top: 10px;">main ways to get graphics:</h3>
+                            <ul>
+                                <li>Images</li>
+                                <li><span class = "ipageLink light" data-to = "svgTitle">SVG</span></li>
+                                <li><span class = "ipageLink light" data-to = "canvasTitle">HTML Canvas</span></li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <!--elaboration-->
+                    <p>We'll be focusing on the last two bullet points. The first way, images, is pretty self-explanatory and is taught in KA's <a href = "https://www.khanacademy.org/computing/computer-programming/html-css" class = "light">HTML and CSS course</a>.</p>
+                    <p>Note that you can technically use HTML elements like with CSS styling to create graphics. However, that requires a lot more work than it's worth and can only create simplistic shapes at best. Both SVG and the HTML canvas would give you many more options with much more ease.</p>
+                </div>
+            </section>
+            
+            <!--SVG-->
+            <section>
+                <div class = "sectionTitle" id = "svgTitle">
+                    <svg class = "fixedBackgroundSVG" viewBox = "0 0 500 200" preserveAspectRatio = "xMinYMin slice">
+                        <use href = "#sectionTitleGraphic"/>
+                    </svg>
+                    <h2>SVG</h2>
+                </div>
+                <div class = "content">
+                    <p>SVG stands for Scalable Vector Graphics and can be used to create vector-based graphics in webpages. It is basically a markup language, just like HTML, except instead of elements like <code>div</code> or <code>p</code>, we have graphics elements like <code>line</code> or <code>circle</code>.</p>
+                    <p>Typically, for more complex images, people will use graphics editors like Inkscape to create their SVGs for them instead of hand-coding things. If you don't have the option to do so, you can always code it yourself with relative ease.</p>
+                    <p>Inline SVGs can easily be added to your HTML like so:</p>
+                    <code class = "codeBlock" data-code = "<body>\n<!--HTML code here-->\n\n<!--your svg :D -->\n<svg>\n<!--svg code here-->\n</svg>\n</body>" data-code-type = "HTML"></code>
+                    
+                    <!--pros and cons-->
+                    <div class = "prosCons">
+                        <!--pros-->
+                        <div>
+                            <svg width = "100%" viewBox = "-7 0 56 50" class = "diamondSVG">
+                                <use href = "#prosDiamond"/>
+                            </svg>
+                            <ul>
+                                <li>Resolution independent and very flexible--the edges will remain sharp even when stretched and scaled because they're vectors</li>
+                                <li>Elements can be accessed in the DOM and have the default built-in event handlers</li>
+                                <li>Elements can be easily manipulated and styled with CSS and JS</li>
+                                <li>Is better than canvas at rendering a small amount of large objects</li>
+                            </ul>
+                        </div>
+                        
+                        <!--cons-->
+                        <div>
+                            <svg width = "100%" viewBox = "-7 0 56 50" class = "diamondSVG">
+                                <use href = "#consDiamond"/>
+                            </svg>
+                            <ul>
+                                <li>Becomes very slow when rendering a large number of objects</li>
+                                <li>Not very good with complex animations and game graphics</li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <!--list of additional information-->
+                    <div id = "svgTable"></div>
+                </div>
+            </section>
+            
+            <!--canvas-->
+            <section>
+                <div class = "sectionTitle" id = "canvasTitle">
+                    <svg class = "fixedBackgroundSVG" viewBox = "0 0 500 200" preserveAspectRatio = "xMinYMin slice">
+                        <use href = "#sectionTitleGraphic" opacity = "0.9"/>
+                    </svg>
+                    <h2>Canvas</h2>
+                </div>
+                <div class = "content">
+                    <p>The HTML canvas is a JS-based way of creating graphics for webpages. It is somewhat similar to the PJS environment that KA provides--in fact, KA automatically loads the Processing JS library and the HTML canvas for you behind the scenes whenever you start a new PJS program.</p>
+                    <p>You don't necessarily need to use the Processing JS library to use the HTML canvas, though, since everything you need is built in. Be warned that using the canvas does take a little more effort to initially set up than SVG.</p>
+                    
+                    <!--setting up-->
+                    <p>Start with an HTML canvas somewhere in your webpage: </p>
+                    <code class = "codeBlock" data-code = "<body>\n<!--HTML code here-->\n\n<!--HTML canvas element, with an ID so you can easily access it later--->\n<canvas id = 'myCanvas'></canvas>\n</body>" data-code-type = "HTML"></code>
+                    <p>Then, add a script tag to set up the rest of what you need: </p>
+                    <code class = "codeBlock" data-code = "//getting the canvas element\nvar myCanvas = document.getElementById('myCanvas');\n\n//getting the canvas context, which is what will be used to draw things on the canvas\n//you will need to prefix all commands with this variable, so you'll probably want to keep it short\nvar ctx = myCanvas.getContext('2d');\n\n//then use it to draw things, like so:\nctx.fillStyle = 'green';\nctx.fillRect(10, 10, 150, 100);" data-code-type = "JS"></code>
+                    
+                    <!--pros and cons-->
+                    <div class = "prosCons">
+                        <!--pros-->
+                        <div>
+                            <svg width = "100%" viewBox = "-7 0 56 50" class = "diamondSVG">
+                                <use href = "#prosDiamond"/>
+                            </svg>
+                            <ul>
+                                <li>Can handle complex animations very well</li>
+                                <li>Easy pixel manipulation</li>
+                                <li>Can render a large amount of objects more easily and efficiently</li>
+                            </ul>
+                        </div>
+                    
+                        <!--cons-->
+                        <div>
+                            <svg width = "100%" viewBox = "-7 0 56 50" class = "diamondSVG">
+                                <use href = "#consDiamond"/>
+                            </svg>
+                            <ul>
+                                <li>Resolution dependent and becomes blurry when stretched/scaled</li>
+                                <li>You have to write your own event handlers and animations</li>
+                                <li>Elements in your graphic can't be accessed in the DOM</li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <!--list of additional information-->
+                    <div id = "canvasTable"></div>
+                </div>
+            </section>
+            
+            <!--references-->
+            <div class = "content" id = "references">
+                <h2>References and Further Reading</h2>
+                <p>Note that all these links clearly lead off-KA (to very valuable sites, might I add).</p>
+                <ul>
+                    <li><a href = "https://developer.mozilla.org/docs/Web/SVG" class = "light">SVG reference on MDN</a></li>
+                    <li><a href = "https://developer.mozilla.org/docs/Web/API/Canvas_API" class = "light">Canvas API MDN page</a></li>
+                    <li><a href = "https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D" class = "light">Canvas methods MDN page</a></li>
+                    <li><a href = "https://css-tricks.com/when-to-use-svg-vs-when-to-use-canvas/" class = "light">SVG vs. canvas comparison on CSS Tricks</a></li>
+                </ul>
+            </div>
+            
+            <!--footer-->
+            <footer>
+                <a href = "https://www.khanacademy.org/profile/WriterPenguin1127/projects" class = "light">Reader Writer Penguin 2020</a>
+            </footer>
+        </div>
+        
+        <!--thumbnail shenanigans-->
+        <div id = "thumbnail">
+            <div>
+                <h1>Graphics in a Webpage</h1>
+                <p>A tutorial</p>
+            </div>
+        </div>
+        
+        <!--SVG definitions for tutorials-->
+        <svg style = "display: block; opacity: 0;" width = '0' height = '0'>
+            <defs>
+                <!--gradient tutorial gradient-->
+                <linearGradient id = 'exampleSVGGradient'>
+                    <stop offset = '0' stop-color = 'pink'/>
+                    <stop offset = '0.5' stop-color = 'purple'/>
+                    <stop offset = '1' stop-color = 'teal'/>
+                </linearGradient>
+                
+                <!--g and use tutorial "small person" g element-->
+                <g id = 'smallPerson'>
+                    <circle cx = '0' cy = '0' r = '4'/><rect x = '-4' y = '6' width = '8' height = '15'/>
+                </g>
+                
+                <!--clipping and masking tutorial defs-->
+                <radialGradient id = 'maskRadialGrad'>
+                    <stop offset = '0.75' stop-color = 'white'/>
+                    <stop offset = '1' stop-color = 'black'/>
+                </radialGradient>
+                <mask id = 'maskTutorialShape'>
+                    <circle cx = '25' cy = '25' r = '25' fill = 'url(#maskRadialGrad)'/>
+                </mask>
+                <clipPath id = "clipTutorialShape">
+                    <circle cx = '25' cy = '25' r = '25'/>
+                </clipPath>
+                
+                <!--clipping and masking tutorial graphic-->
+                <g id = "maskMountains">
+                    <!--background-->
+                    <rect x = '0' y = '0' width = '50' height = '50' fill = 'rgb(178, 208, 212)'/>
+                    
+                    <!--sun-->
+                    <circle cx = '25' cy = '18' r = '9' fill = 'rgb(240, 231, 201)'/>
+                    
+                    <!--clouds-->
+                    <rect x = '6' y = '16' width = '15' height = '3' rx = '1' fill = 'rgba(255, 255, 255, 0.7)'/>
+                    <rect x = '32' y = '6' width = '19' height = '4' rx = '1' fill = 'rgba(255, 255, 255, 0.8)'/>
+                    <rect x = '25' y = '19' width = '15' height = '3.5' rx = '1' fill = 'rgba(255, 255, 255, 0.7)'/>
+                    <rect x = '-1' y = '8.5' width = '19' height = '4' rx = '1' fill = 'rgba(255, 255, 255, 0.6)'/>
+                    
+                    <!--mountains above water-->
+                    <path d = 'M 0, 35 L 0, 27 L 4, 23 L 7, 24 L 12, 16 L 20, 25 L 22, 26 L 30, 21 L 31, 20 L 37, 11 L 43, 20 L 47, 18 L 50, 24 L 50, 35' fill = 'rgb(67, 118, 128)'/>
+                    <path d = 'M 0, 35 L 0, 27 L 4, 23 L 2, 27 L 6, 26 L 7, 24 L 12, 16 L 14, 25 L 17, 26 L 17, 30 L 25, 34 L 30, 25 L 38, 21 L 35, 20 L 37, 11 L 43, 20 L 44, 22 L 46, 21 L 47, 18 L 50, 24 L 50, 35' fill = 'rgba(0, 0, 0, 0.3)'/>
+                    
+                    <!--blue rect representing water-->
+                    <rect x = '0' y = '35' width = '50' height = '15' fill = 'rgb(89, 178, 186)'/>
+                    
+                    <!--water texture-->
+                    <g fill = 'rgba(255, 255, 255, 0.3'>
+                        <rect x = '4' y = '37' width = '19' height = '1'/>
+                        <rect x = '30' y = '40' width = '23' height = '1'/>
+                        <rect x = '31' y = '37' width = '7' height = '1'/>
+                        <rect x = '17' y = '39' width = '10' height = '1'/>
+                        <rect x = '6' y = '42' width = '7' height = '1'/>
+                        <rect x = '16' y = '44' width = '19' height = '1'/>
+                        <rect x = '39' y = '43' width = '10' height = '1'/>
+                        <rect x = '12' y = '46' width = '12' height = '1'/>
+                   </g>
+                </g>
+            </defs>
+        </svg>
+        
+        <!--SVG pages-->
+        <!--svg basics-->
+        <div class = "articlePage" data-address = "SVG-Basics-viewbox" data-title = "Getting started: viewport and viewbox">
+            <div class = "content">
+                <!--introduction-->
+                <p>For every SVG graphic you make, you'll want to define the dimensions of the element and the size of the graphic. You may be tempted to try and scale an SVG like you would an image, by defining its width and height and leaving it as is:</p>
+                <code class = "codeBlock" data-code = "<svg width = '50px' height = '50px'>\n<!--draws a circle at centered at (12.5, 12.5) with a radius of 12.5-->\n<circle cx = '12.5' cy = '12.5' r = '12.5'/>\n</svg>" data-code-type = "HTML"></code>
+                <p>You might expect that the circle will double in size to fit the SVG element's dimensions. However, the circle won't change in size at all--it's just the SVG element that's changing in size!</p>
+                <p>How do you determine how your SVG graphic will scale to fit the element's dimensions? Well, that's where the magical attribute called <code>viewBox</code> comes in.</p>
+                
+                <!--viewbox explanation-->
+                <p>The value of <code>viewBox</code> is a string of 4 numbers, separated by a space or a comma like so:</p>
+                <code class = "codeBlock" data-code = "<svg viewBox = '0 0 100 100'>\n<!--svg code here-->\n</svg>" data-code-type = "HTML"></code>
+                <p>Those four numbers determine the coordinate system used by your SVG elements to position themselves. When you create an element with an x value of, say, "10," then that "10" is interpreted in terms of the coordinate system viewBox sets up.</p>
+                <p>The first two numbers, 0 and 0 in the example above, determine the minimum x and y values that can be seen in your graphic. It basically determines where the point (0, 0) in your coordinate system will appear in terms of the top left corner of the SVG element. Like in PJS, the larger the x value, the further right the origin is, and the larger the y value, the further down the origin is.</p>
+                <p>The last two numbers determine the width and the height of the coordinate system, respectively, which in turn determines how the graphic will be scaled to fit the SVG element's width and height.</p>
+                
+                <!--example-->
+                <p>So if you want that circle to scale to fit the dimensions of your SVG above, you'll do something like this:</p>
+                <code class = "codeBlock" data-code = "<svg width = '50px' height = '50px' viewBox = '0 0 25 25'>\n<circle cx = '12.5' cy = '12.5' r = '12.5'/>\n</svg>" data-code-type = "HTML"></code>
+                <p>Why does this work? You're saying that the SVG should only look at the square area from (0, 0) to (25, 25) in your coordinate system, which is exactly how much space your circle takes up. The SVG will scale what is in that area to fit the dimensions you specify for the width and the height--if you change the width and height to 10px or 20px or 100px, the circle will always perfectly fit your element. How cool is that?</p>
+                <p>I'd recommend you play around a bit more with SVG width, height, and viewBox to get a better sense of how to get your graphic to display the way you want it to, scaling and all. If you want to, check out <a href = "https://css-tricks.com/scale-svg/">this helpful resource</a> (link leads off-KA) that breaks down SVG scaling in an easy to understand way.</p>
+            </div>
+        </div>
+        <div class = "articlePage" data-address = "SVG-Basics-introElements" data-title = "Elements introduction">
+            <div class = "content">
+                <p>What fun is SVG without knowing the elements out there? Here I'll cover some of the basic elements and attributes you need to know to create simple graphics.</p>
+                
+                <!--circle-->
+                <p>First up is the <code>circle</code> element. You may have seen this already in the first basics article; it looks something like this:</p>
+                <code class = "codeBlock" data-code = "<circle cx = '10' cy = '10' r = '5'/>" data-code-type = "HTML"></code>
+                <p>The <code>cx</code> and <code>cy</code> attributes specify the center of the circle, while the <code>r</code> attribute specifies the radius. This line of code will draw a circle centered at (10, 10) with a radius of 5 units.</p>
+                
+                <!--ellipse-->
+                <p>Closely related to <code>circle</code> is <code>ellipse</code>. It has very similar attributes, but instead of a single <code>r</code> attribute for the radius, it has <code>rx</code> and <code>ry</code> attributes controlling the horizontal radius and vertical radius, respectively:</p>
+                <code class = "codeBlock" data-code = "<!--draws an ellipse centered at (10, 10) with a width of 16 units and a height of 6 units-->\n<ellipse cx = '10' cy = '10' rx = '8' ry = '3'/>" data-code-type = "HTML"></code>
+                
+                <!--rect-->
+                <p>Next is the <code>rect</code> element. <code>rect</code> takes 4 attributes at minimum: <code>x</code> and <code>y</code>, which determine the coordinates of the top left corner of the rectangle, and <code>width</code> and <code>height</code>, which are pretty self-explanatory. </p><p><code>rect</code> also has two additional properties that control the radius of the rect: <code>rx</code> and <code>ry</code>. They control how rounded each corner is in the horizontal and vertical direction, respectively:</p>
+                <code class = "codeBlock" data-code = "<!--regular rectangle whose top left corner is at (10, 10) with a width of 20 units and a height of 50 units-->\n<rect x = '10' y = '10' width = '20' height = '50'/>\n\n<!--another rectangle, but with uniformly rounded corners-->\n<rect x = '35' y = '10' width = '20' height = '50' rx = '3'/>\n\n<!--one last rectangle with corners rounded more in the vertical direction than the horizontal direction-->\n<rect x = '60' y = '10' width = '20' height = '50' rx = '3' ry = '8'/>" data-code-type = "HTML"></code>
+                
+                <!--line-->
+                <p>Another basic element is <code>line</code>. It has an <code>x1</code> and <code>y1</code> attribute for the line's starting coordinates, as well as an <code>x2</code> and <code>y2</code> attribute for its ending coordinates:</p>
+                <code class = "codeBlock" data-code = "<!--draws a line starting at (5, 5) and ending at (10, 17)\nthe stroke is there so that the line shows up, otherwise, stroke is automatically transparent-->\n<line x1 = '5' y1 = '5' x2 = '10' y2 = '17' stroke = 'black'/>" data-code-type = "HTML"></code>
+                
+                <!--text-->
+                <p>The last basic element I will cover here is the <code>text</code> element. The <code>text</code> element has a <code>x</code> and a <code>y</code> attribute that determines the coordinates of the bottom left corner of the text (the starting point of the baseline). Unlike the previous elements that are self-closing, you put the words you want the text to display in between the opening and closing <code>text</code> tags, like this:</p>
+                <code class = "codeBlock" data-code = "<!--draws the words 'hi there' with the bottom left corner of the 'h' at 10, 10-->\n<text x = '10' y = '10'>hi there</text>"></code>
+                <p><code>text</code> also has a few extra attributes you can set that further control the appearance of the text. You can check them out <a href = "https://developer.mozilla.org/docs/Web/SVG/Element/text">here</a> (link leads off-KA) to see what they do.</p>
+            </div>
+        </div>
+        <div class = "articlePage" data-address = "SVG-Basics-introStyling" data-title = "Changing styling">
+            <div class = "content">
+                <!--introduction-->
+                <p>Up until now, the examples I've given have all been a boring black color. You may have already figure out how to change stroke and fill color based on the <code>line</code> example from the last article--through setting the aptly named <code>stroke</code> and <code>fill</code> properties of each element. </p>
+                <p>The automatic setting for an inline SVG is a black fill with transparent stroke. If we wanted to make a red circle with a blue stroke, you could clearly do something like this below:</p>
+                <code class = "codeBlock" data-code = "<circle cx = '10' cy = '10' r = '7' stroke = 'blue' fill = 'red'/>" data-code-type = "HTML"></code>
+                <p>"blue" and "red" are built-in CSS colors for the two colors, but you can use other ways to define what color you want, such as RGB (<code>stroke = 'rgb(0, 0, 255)'</code>), HSL (<code>hsl(0, 100%, 50%)</code>), or hex codes.</p>
+                
+                <!--stroke attributes-->
+                <p>You can also change the styling of the stroke easily, with a wide range of attributes you can set:</p>
+                <ul>
+                    <li><code>stroke-width</code> is a number that sets the thickness of the stroke.</li>
+                    <li><code>stroke-linecap</code> can be set to <code>butt</code>, <code>round</code>, or <code>square</code> and controls the appearance of the line's end, much like what the <code>strokeCap</code> function does in PJS.</li>
+                    <li><code>stroke-linejoin</code> can be set to <code>arcs</code>, <code>bevel</code>, <code>miter</code>, <code>miter-clip</code>, or <code>round</code> and control the appearance of corners where two lines meet. This is similar to what the <code>strokeJoin</code> function does in PJS. For a visualization of what it does, visit <a href = "https://developer.mozilla.org/docs/Web/SVG/Attribute/stroke-linejoin">this link</a> (leads off KA).</li>
+                    <li><code>stroke-dasharray</code> is a list of numbers (separated by a space or a comma) that determines the pattern of dash and gap lengths. For example, setting it to "4" would mean each dash and each gap would be 4 units long, whereas setting it to "4 1" means that each dash is 4 units long and each gap is 1 unit long. "4 1 2" will make it so the first dash is 4 units, the first gap is 1 unit, the second dash is 2 units, the second gap is 4 units, the third dash is 1 unit, and so on. You can look at <a href = "https://developer.mozilla.org/docs/Web/SVG/Attribute/stroke-dasharray">this link</a> (leads off KA) for a visualization and more information on this attribute.</li>
+                </ul>
+                
+                <!--transform-->
+                <p>You can use the <code>transform</code> attribute to, well, apply transformations to an element, including but not being limited to: translating, scaling, rotating, or skewing the element. This is equivalent to setting the CSS transform property of the element and can let you easily position elements:</p>
+                <code class = "codeBlock" data-code = "<!--original circle-->\n<circle cx = '10' cy = '10' r = '7' fill = 'red'/>\n\n<!--translated down 20 units-->\n<circle cx = '10' cy = '10' r = '7' fill = 'pink' transform = 'translate(0, 20)'/>\n\n<!--rotated by 85 degrees around the origin-->\n<circle cx = '10' cy = '10' r = '7' fill = 'orange' transform = 'rotate(85)'/>\n\n<!--translating it 15 units to the right and scaling it 1.5 times in the horizontal direction and 2 times in the vertical direction, with respect to the origin-->\n<circle cx = '10' cy = '10' r = '7' fill = 'yellow' transform = 'translate(15, 0) scale(1.5, 2)'/>" data-code-type = "HTML"></code>
+                
+                <!--style attribute-->
+                <p>Of course, every attribute covered in this section has a CSS equivalent that you can set to achieve the same result. You could also lump them together into a single <code>style</code> attribute like this:</p><code class = "codeBlock" data-code = "<!--creates a circle centered at (10, 10) with radius 7, red fill, and a blue stroke that has dashes and gaps that are 2 units long-->\n<circle cx = '10' cy = '10' r = '7' style = 'stroke: blue; fill: red; stroke-dasharray: 2;'/>" data-code-type = "HTML"></code>
+                <p>Note that for properties like <code>transform</code> you will have to specify units (such as <code>px</code>) if you want to write the property into the style attribute in this way.</p>
+            </div>
+        </div>
+        <div class = "articlePage" data-address = "SVG-Basics-polygons" data-title = "Polygons and paths">
+            <div class = "content">
+                <!--introduction-->
+                <p>Now that we've got the basic shapes down, we can move on to some more complicated ones. <code>rect</code>, <code>ellipse</code>, <code>circle</code>, and <code>line</code> are great, but they can't help you much when you want to make some weird, irregular shape.</p>
+                
+                <!--polygon-->
+                <p>The first complex shape element is the <code>polygon</code>. You might guess that it draws a polygon, and you'd be correct. It has an attribute called <code>points</code> that is a string of coordinates representing the positions of the vertices, with the numbers separated by commas or spaces. You could have any number of vertices in the polygon. If you're familiar with PJS, this would be the equivalent of using <code>beginShape()</code>, <code>vertex()</code>, and <code>endShape(CLOSE)</code>.</p>
+                <p>Let's look at a quick example:</p>
+                <code class = "codeBlock" data-code = "<!--draws a triangle with vertices at (15, 0), (40, 20), and (0, 50)-->\n<polygon points = '15,0 40,20 0,50'/>\n\n<!--draws an irregular, concave quadrilateral with vertices at (39, 6), (31, 34), (63, 73), and (0, 34)-->\n<polygon points = '39,6 31,34 63,73 0,34'/>" data-code-type = "HTML"></code>
+                
+                <!--polyline-->
+                <p>Closely related to the <code>polygon</code> element is <code>polyline</code>, which also has a <code>points</code> attribute that determines the coordinates of its points. While the polygon element creates a closed shape, <code>polyline</code> creates open shapes where the last point isn't necessarily connected to the first point. You can see the difference by setting the fill to transparent and the stroke the black for a <code>polygon</code> and a <code>polyline</code> that share the same points:</p>
+                <code class = "codeBlock" data-code = "<polygon points = '39,6 31,34 63,73 0,34' fill = 'transparent' stroke = 'black'/>\n<polyline points = '39,6 31,34 63,73 0,34' transform = 'translate(57, 0)' fill = 'transparent' stroke = 'black'/>" data-code-type = "HTML"></code>
+                
+                <!--svg showing difference between polygon and polyline-->
+                <svg viewBox = '0 0 130 90' width = '60%' class = 'exampleSVG'>
+                    <!--shapes-->
+                    <polygon points = '39,6 31,34 63,73 0,34' fill = 'transparent' stroke = 'black'/>
+                    <polyline points = '39,6 31,34 63,73 0,34' transform = 'translate(57, 0)' fill = 'transparent' stroke = 'black'/>
+                    
+                    <!--labels-->
+                    <g fill = 'black' stroke = 'transparent' font-size = '12px'>
+                        <text x = '10' y = '84'>Polygon</text>
+                        <text x = '74' y = '84'>Polyline</text>
+                    </g>
+                </svg>
+                
+                <!--paths intro-->
+                <p>Now you can create straight-edged, irregular shapes, but what about those with curved edges? </p>
+                <p>That's where <code>path</code> comes in! <code>path</code> can create pretty much any shape you want. It has a <code>d</code> attribute, a string that contains all the path commands that define the path you want to create. Path commands start with a letter representing the type of command followed by numbers that are the coordinates being passed into the command.</p>
+                <p>These commands are case sensitive--capital letters mean that the numbers represent an absolute position, whereas lowercase letters mean that the numbers represent how much you want to change from the current position. The commands are as follows:</p>
+                
+                <!--path commands-->
+                <ul>
+                    <li><code>M</code> and <code>m</code> are moveTo commands that take two parameters (new x and y or change in x and y). Think of it as picking up the pen that you're using to draw the path and moving it to a new, different coordinate. No mark will be made connecting the current point to the point you want to move to.</li>
+                    <li><code>Z</code> or <code>z</code> automatically closes the path, drawing a straight line between the last point and the first point (if they are different).</li>
+                    <li><code>L</code> and <code>l</code> represent lineTo commands that take two parameters (new x and y or change in x and y). It draws a straight line from your current point to the point you specify.</li>
+                    <li><code>H</code> and <code>h</code> are also lineTo commands that take one parameter (the new x or change in x). They draw a horizontal line from the current coordinate to whatever new x you specify. Very similar are the <code>V</code> and <code>v</code> commands, which draw a vertical line from the current point to a new y value.</li>
+                    <li><code>C</code> and <code>c</code> are cubic bezier curve commands. They take 6 parameters that represent either the new x and y coordinates or the change in x and y coordinates (with respect to the current position) for the first control point (c1), the second control point (c2), and the end point, in that order. If you are familiar with complex shapes in PJS, the <code>C</code> command will be the same as PJS's <code>bezierVertex()</code>.</li>
+                    <li><code>Q</code> and <code>q</code> are quadratic bezier curve commands that take 4 parameters representing either the new x and y coordinates or the change in x and y coordinates for the control point and the end point (in that order).</li>
+                    <li><code>A</code> and <code>a</code> are arcTo commands that take 7 parameters and draw an elliptical arc:
+                        <ul>
+                            <li>The first two numbers specify the x radius and the y radius of the ellipse.</li>
+                            <li>The third number specifies the number of degrees that the ellipse will be rotated.</li>
+                            <li>The fourth number is either a 0 or a 1, with 0 meaning that the browser should draw the smaller arc and 1 meaning the browser should draw the larger arc.</li>
+                            <li>The fifth number also is either a 0 or a 1, with 0 meaning the browser should draw the anticlockwise turning arc and 1 meaning the browser should draw the clockwise turning arc.</li>
+                            <li>The last two numbers specify the end point of the arc.</li>
+                        </ul>
+                    </li>
+                </ul>
+                
+                <!--arc command visualization-->
+                <p>To better visualize the meaning of "larger arc" or "anticlockwise arc," here's a path drawn with different fourth and fifth numbers that otherwise remain the same:</p>
+                <code class = "codeBlock" data-code = "<g fill = 'none' stroke-width = '2px'>\n<!--smaller arc, anticlockwise-->\n<path d = 'M 40, 20 A 20 10 5 0 0 50, 35' strple = 'black'/>\n\n<!--smaller arc, clockwise-->\n<path d = 'M 40, 20 A 20 10 5 0 1 50, 35' stroke = 'green'/>\n\n<!--larger arc, anticlockwise-->\n<path d = 'M 40, 20 A 20 10 5 1 0 50, 35' stroke = 'red'/>\n\n<!--larger arc, clockwise-->\n<path d = 'M 40, 20 A 20 10 5 1 1 50, 35' stroke = 'blue'/>\n</g>" data-code-type = "HTML"></code>
+                <p>This will give this result, with added text labels for clarity:</p>
+                <svg viewBox = '8 8 75 75' width = '50%' class = 'exampleSVG'>
+                    <!--arcs-->
+                    <g fill = 'none' stroke-width = '2px'>
+                        <path d = 'M 40, 20 A 20 10 5 0 0 50, 35' stroke = 'black'/>
+                        <path d = 'M 40, 20 A 20 10 5 0 1 50, 35' stroke = 'green'/>
+                        <path d = 'M 40, 20 A 20 10 5 1 0 50, 35' stroke = 'red'/>
+                        <path d = 'M 40, 20 A 20 10 5 1 1 50, 35' stroke = 'blue'/>
+                    </g>
+                    
+                    <!--labels-->
+                    <g transform = 'translate(25, 55)' fill = 'black' stroke = 'transparent'>
+                        <text x = '0' y = '0' font-size = '6px'>
+                            <tspan dy = '0'>Small, anticlockwise</tspan>
+                            <tspan x = '0' dy = '1.2em'>Small, clockwise</tspan>
+                            <tspan x = '0' dy = '1.2em'>Large, anticlockwise</tspan>
+                            <tspan x = '0' dy = '1.2em'>Large, clockwise</tspan>
+                        </text>
+                        <circle cx = '-7'cy = '-2' r = '2' fill = 'black'/>
+                        <circle cx = '-7'cy = '5.25' r = '2' fill = 'green'/>
+                        <circle cx = '-7'cy = '12.5' r = '2' fill = 'red'/>
+                        <circle cx = '-7'cy = '19.75' r = '2' fill = 'blue'/>
+                    </g>
+                </svg>
+                
+                <!--additional commands note-->
+                <p>There is also <code>T</code>, <code>t</code>, <code>S</code>, and <code>s</code> which create smooth quadratic and smooth cubic bezier curves, respectively. To learn more about these commands, visit <a href = "https://developer.mozilla.org/docs/Web/SVG/Attribute/d">MDN's helpful documentation</a> (leads off KA) of the <code>d</code> attribute.</p>
+            </div>
+        </div>
+        
+        <!--svg intermediate-->
+        <div class = "articlePage" data-address = "SVG-Intermediate-defsIntro" data-title = "Gradients and <defs> introduction">
+            <div class = "content">
+                <!--defs intro-->
+                <p>The <code>defs</code> element in SVG is one of the most useful elements out there. It's short for definitions, and is where special elements like gradients or filters or just commonly used graphics will go to be stored for future use. Although elements can technically be referenced from anywhere, having a <code>defs</code> element helps consolidate those referenced elements and makes for more accessible code.</p>
+                <p>Anything you put in <code>defs</code> will not show up until you reference it later. You usually will need an id for the element so that you can easily access it later; it helps to name it something descriptive, like "skyGradient" or something of the sort, to prevent accidental duplication.</p>
+                <p><code>defs</code> is particularly useful for creating gradients. In SVG, you can create two kinds of gradients: linear and radial. Their basic execution is very similar, it's just the way the final gradient appears that differs.</p>
+                
+                <!--gradient explanation-->
+                <p>Let's look at a <code>linearGradient</code> element inside our definition element:</p>
+                <code class = "codeBlock" data-code = "<defs>\n<linearGradient id = 'exampleGradient'>\n<!--colors will go here-->\n</linearGradient>\n</defs>" data-code-type = "HTML"></code>
+                <p>Inside each gradient element, you will have <code>stop</code> elements that control the color of the gradient. You set the color of the stop with the <code>stop-color</code> attribute, and determine at what point in the gradient (0% to 100%, or alternatively, 0 to 1) should the gradient be that color. For example, if you were fading from pink to teal, you would do something like this:</p>
+                <code class = "codeBlock" data-code = "<defs>\n<linearGradient id = 'exampleGradient'>\n<!--pink color stop-->\n<stop offset = '0' stop-color = 'pink'/>\n\n<!--teal color stop-->\n<stop offset = '1' stop-color = 'teal'/>\n</linearGradient>\n</defs>" data-code-type = "HTML"></code>
+                <p>This will create a pink to teal gradient, with pink on the left and teal on the right (SVG linear gradients go from left to right).</p>
+                <p>If you wanted to fade from pink to purple until about halfway before then fading from purple to teal, you'd have another color stop halfway through:</p><code class = "codeBlock" data-code = "<defs>\n<linearGradient id = 'exampleGradient'>\n<stop offset = '0' stop-color = 'pink'/>\n<stop offset = '0.5' stop-color = 'purple'/>\n<stop offset = '1' stop-color = 'teal'/>\n</linearGradient>\n</defs>" data-code-type = "HTML"></code>
+                <p>Radial gradients will be the exact same, except you use the <code>radialGradient</code> tag instead. Radial gradients will start near the center and go outwards in a circular shape, so color stops near 0 will be nearer to the center of the gradient.</p>
+                
+                <!--using gradient-->
+                <p>Now that we've defined a gradient, we'll need to actually use it! You can set the fill (or stroke) of SVG elements to your custom gradient and easily fill the entire shape--no matter how irregular--with the gradient. We'll do this by setting <code>fill</code> equal to <code>url(gradientID)</code>, which tells the browser to reference your gradient element to fill your shape.</p>
+                <p>Let's create a circle filled with our pink-purple-teal gradient:</p>
+                <code class = "codeBlock" data-code = "<circle cx = '10' cy = '10' r = '10' fill = 'url(#exampleGradient)'/>" data-code-type = "HTML"></code>
+                <p>Put together, the code will create a result like this:</p>
+                <svg class = "exampleSVG" viewBox = "0 0 20 20" width = "100px">
+                    <circle cx = '10' cy = '10' r = '10' fill = "url(#exampleSVGGradient)"/>
+                </svg>
+                <p>Pretty neat, huh? </p>
+            </div>
+        </div>
+        <div class = "articlePage" data-address = "SVG-Intermediate-groupsIntro" data-title = "Groups and <use>">
+            <div class = "content">
+                <!--introduction-->
+                <p>Up until now, you might've had two large gripes with SVG. First, you've had to style every element individually, or make sweeping changes to the whole SVG or to all the elements of its kind. Kind of annoying if you wanted to, say, transform one cluster of rectangles and circles while leaving another intact. Second, you couldn't reuse recurring elements. Sure, you can copy and paste code, but there <i>must</i> be some better way, right?</p>
+                <p>Enter the magical <code>g</code> element, the solution to your problems! <code>g</code> is short for group, and true to its name, it defines a group of SVG elements. If you're familiar with HTML, think of it as SVG's equivalent of the <code>div</code> element.</p>
+                
+                <!--g element explanation-->
+                <p>The <code>g</code> element can contain any number of different SVG elements. Any styling applied to the <code>g</code> element will automatically apply to all its elements within it and will not affect other elements outside of it:</p>
+                <code class = "codeBlock" data-code = "<svg viewBox = '0 0 40 40' stroke = 'transparent' fill = 'black'>\n<!--a group of rectangles and circles that all will have blue fill and teal stroke-->\n<g fill = 'blue' stroke = 'teal'>\n<circle cx = '15' cy = '16' r = '3'/>\n<rect x = '20' y = '20' width = '15' height = '8'/>\n<circle cx = '17' cy = '30' r = '8'/>\n</g>\n\n<!--a lonely circle with a black fill (as a result of default SVG styling)-->\n<circle cx = '10' cy = '10' r = '7'/>\n</svg>" data-code-type = "HTML"></code>
+                <p>Of course, you could have specific styles for individual elements within a <code>g</code> element, too, since specific styling overrides more generalized styles. You could, for example, make the last circle in the group in the example above have a red stroke instead of teal by setting the stroke attribute for it:</p>
+                <code class = "codeBlock" data-code = "<g fill = 'blue' stroke = 'teal'>\n<circle cx = '15' cy = '16' r = '3'/>\n<rect x = '20' y = '20' width = '15' height = '8'/>\n\n<!--this circle will have red stroke because its individual styling overrides the group's general styling-->\n<circle cx = '17' cy = '30' r = '8' stroke = 'red'/>\n</g>" data-code-type = "HTML"></code>
+                
+                <!--defs and g-->
+                <p>The other power of <code>g</code>, creating reusable graphics elements, is unlocked with the help of <code>defs</code> and a <code>use</code> element.</p>
+                <p>Inside of <code>defs</code>, create a new <code>g</code> that will contain whatever part of your graphic you want to reuse, such as a star, a tree, or something else of the sort:</p>
+                <code class = "codeBlock" data-code = "<defs>\n<!--make sure to give your g element an id, so you can access it later!-->\n<g id = 'smallPerson'>\n<!--a simplistic example that draws a small 'person' with a circle for the head and a rect for the body-->\n<circle cx = '0' cy = '0' r = '4'/>\n<rect x = '-4' y = '6' width = '8' height = '15'/>\n</g>\n</defs>" data-code-type = "HTML"></code>
+                <p>When you want to use that part of the graphic, you'll create a <code>use</code> element with its <code>href</code> attribute set to your <code>g</code>'s id:</p>
+                <code class = "codeBlock" data-code = "<use href = '#smallPerson'/>" data-code-type = "HTML"></code>
+                <p>You can then style and change the <code>use</code> element to change how it appears, such as by setting its <code>transform</code> attribute and moving it around. Note that if you add styling onto the <code>g</code> when you first defined it in <code>defs</code>, the styling there will override the styling you set on the <code>use</code> element. </p>
+                
+                <!--example-->
+                <p>Put together, our code inside our SVG will look like this:</p>
+                <code class = "codeBlock" data-code = "<defs>\n<!--our wonderful small person group-->\n<g id = 'smallPerson'>\n<circle cx = '0' cy = '0' r = '4'/>\n<rect x = '-4' y = '6' width = '8' height = '15'/>\n</g>\n</defs>\n\n<!--using our small person group with various fills and transformations-->\n<use href = '#smallPerson' transform = 'translate(9, 7) scale(0.8)' fill = 'skyblue'/>\n<use href = '#smallPerson' transform = 'translate(20, 18)' fill = 'teal'/>\n<use href = '#smallPerson' transform = 'translate(31, 11) scale(0.6)' fill = 'navy' stroke = 'gold'/>" data-code-type = "HTML"></code>
+                <p>The result will be something like this:</p>
+                <svg viewBox = '0 0 40 40' width = '150px' class = 'exampleSVG'>
+                    <use href = '#smallPerson' transform = 'translate(9, 7) scale(0.8)' fill = 'skyblue'/>
+                    <use href = '#smallPerson' transform = 'translate(20, 18)' fill = 'teal'/>
+                    <use href = '#smallPerson' transform = 'translate(31, 11) scale(0.6)' fill = 'navy' stroke = 'gold'/>
+                </svg>
+                
+                <!--additional note-->
+                <p>An additional note: for reusable elements, you can also use the <code>symbol</code> element instead of a combination of <code>g</code> and <code>defs</code>. To find out more about the symbol tag, visit <a href = "https://developer.mozilla.org/docs/Web/SVG/Element/symbol">MDN's page on symbols</a>, and to compare it with <code>g</code>, check out the other link I gave in the 'Additional capbilities' article for symbols.</p>
+            </div>
+        </div>
+        <div class = "articlePage" data-address = "SVG-Intermediate-clippingMasking" data-title = "Clipping and masking">
+            <div class = "content">
+                <!--introduction-->
+                <p>SVG, like PJS, has masking and clipping abilities. Clipping refers to carving out a shape based on other parts, either showing or not showing a part of the shape. Masking, on the other hand, deals with varying transparencies based on grayscale and can create fading effects.</p>
+                
+                <!--clipping-->
+                <p>Clipping is fairly simple to set up. You first have a shape (or multiple shapes) that cover the areas that you want to show in the final image. Once you have those figured out, put them in a <code>clipPath</code> element inside <code>defs</code>, like so:</p>
+                <code class = "codeBlock" data-code = "<defs>\n<!--as always, we have an id so we can access it later-->\n<clipPath id = 'circularClip'>\n<!--draws a circle\nthis means that we want to show everything that's inside this circular area in the final image-->\n<circle cx = '25' cy = '25' r = '25'/>\n</clipPath>\n</defs>" data-code-type = "HTML"></code>
+                <p>Then take whatever shape or graphic you want to clip (I've created a quick graphic and wrapped it all in a <code>g</code> element):</p>
+                <code class = "codeBlock" data-code = "<g>\n <!--background-->\n<rect x = '0' y = '0' width = '50' height = '50' fill = 'rgb(178, 208, 212)'/>\n\n<!--sun-->\n<circle cx = '25' cy = '18' r = '9' fill = 'rgb(240, 231, 201)'/>\n\n<!--clouds-->\n<rect x = '6' y = '16' width = '15' height = '3' rx = '1' fill = 'rgba(255, 255, 255, 0.7)'/>\n<rect x = '32' y = '6' width = '19' height = '4' rx = '1' fill = 'rgba(255, 255, 255, 0.8)'/>\n<rect x = '25' y = '19' width = '15' height = '3.5' rx = '1' fill = 'rgba(255, 255, 255, 0.7)'/>\n<rect x = '-1' y = '8.5' width = '19' height = '4' rx = '1' fill = 'rgba(255, 255, 255, 0.6)'/>\n\n<!--mountains above water-->\n<path d = 'M 0, 35 L 0, 27 L 4, 23 L 7, 24 L 12, 16 L 20, 25 L 22, 26 L 30, 21 L 31, 20 L 37, 11 L 43, 20 L 47, 18 L 50, 24 L 50, 35' fill = 'rgb(67, 118, 128)'/>\n <path d = 'M 0, 35 L 0, 27 L 4, 23 L 2, 27 L 6, 26 L 7, 24 L 12, 16 L 14, 25 L 17, 26 L 17, 30 L 25, 34 L 30, 25 L 38, 21 L 35, 20 L 37, 11 L 43, 20 L 44, 22 L 46, 21 L 47, 18 L 50, 24 L 50, 35' fill = 'rgba(0, 0, 0, 0.3)'/>\n\n<!--blue rect representing water-->\n<rect x = '0' y = '35' width = '50' height = '15' fill = 'rgb(89, 178, 186)'/>\n\n<!--water texture-->\n<g fill = 'rgba(255, 255, 255, 0.3'>\n<rect x = '4' y = '37' width = '19' height = '1'/>\n<rect x = '30' y = '40' width = '23' height = '1'/>\n<rect x = '31' y = '37' width = '7' height = '1'/>\n<rect x = '17' y = '39' width = '10' height = '1'/>\n<rect x = '6' y = '42' width = '7' height = '1'/>\n<rect x = '16' y = '44' width = '19' height = '1'/>\n<rect x = '39' y = '43' width = '10' height = '1'/>\n<rect x = '12' y = '46' width = '12' height = '1'/>\n</g>\n</g>" data-code-type = "HTML"></code>
+                <svg viewBox = '0 0 50 50' class = 'exampleSVG' width = '60%'>
+                    <use href = '#maskMountains'/>
+                </svg>
+                <p>Then add in a <code>clip-path</code> attribute, setting it equal to the <code>clipPath</code> element you previously defined:</p>
+                <code class = "codeBlock" data-code = "<g clip-path = 'url(#circularClip)'>\n<!--all the graphics code here-->\n</g>" data-code-type = "HTML"></code>
+                <p>And voila! You've clipped that previously rectangular graphic to a circle shape:</p>
+                <svg viewBox = '0 0 50 50' class = 'exampleSVG' width = '60%'> 
+                    <use href = '#maskMountains' clip-path = 'url(#clipTutorialShape)'/>
+                </svg>
+                
+                <!--masking-->
+                <p>But say that we don't want to have the cut-and-dry, either show it or not edges. Maybe we want to have that graphic fade out around the edges in a circular gradient. That's where we have to use masking, instead.</p>
+                <p>First, to create a fading effect, we'll need to define a gradient. Let's create a radial gradient that, when applied in the masking, will have an opaque center and transparent edges. To do that, we will have to make the center of the gradient white and the edges black (white will show up opaque in the final image, black will show up transparent, and values in between will show up with varying translucency):</p>
+                <code class = "codeBlock" data-code = "<radialGradient id = 'maskGradient'>\n<!--I set the stop offset at 0.75 and not 0 so that it will remain white for a larger portion before fading to black. That way, more of the final image will be opaque-->\n<stop offset = '0.75' stop-color = 'white'/>\n<stop offset = '1' stop-color = 'black'/>\n</radialGradient>" data-code-type = "HTML"></code>
+                <p>Then, we will need to create a <code>mask</code> element with a shape that uses this gradient (we can't just mask with the gradient itself, we need a shape to define where the gradient will be applied). Let's make it a large circle centered in the middle of the graphic:</p>
+                <code class = "codeBlock" data-code = "<mask id = 'maskShape'>\n<circle cx = '25' cy = '25' r = '25' fill = 'url(#maskGradient)'/>\n</mask>" data-code-type = "HTML"></code>
+                <p>As the final step, we'll set the <code>mask</code> attribute of the <code>g</code> element containing our graphic to the circular mask shape we want:</p>
+                <code class = "codeBlock" data-code = "<g mask = 'url(#maskShape)'>\n<!--all the graphics code here-->\n</g>" data-code-type = "HTML"></code>
+                <p>Now we can see the beautiful circular fading effect we've created!</p>
+                <svg viewBox = '0 0 50 50' class = 'exampleSVG' width = '60%'>
+                    <use href = '#maskMountains' mask = 'url(#maskTutorialShape)'/>
+                </svg>
+            </div>
+        </div>
+        <div class = "articlePage" data-address = "SVG-Intermediate-SVGwithCSSJS" data-title = "SVG with CSS and JS">
+            <div class = "content">
+                <!--CSS-->
+                <p>One of the benefits of SVG is that it can work together with CSS and JS to create some really awesome graphics that respond to user interaction. You can easily access inline SVG elements with CSS just like you would with any other HTML element:</p>
+                <code class = "codeBlock" data-code = "/*selector for all circle elements*/\ncircle {\n/*styling that will apply to all circles*/\nfill: red;\nstroke: blue;\n}" data-code-type = "CSS"></code>
+                <p>However, know that <b>the CSS styling will override any styling you create for the element by setting attributes</b>. Inline styles with the <code>style</code> attribute will still override the generalized CSS, but that generalized CSS will trump other SVG presentation attributes. Let's see an example of that with the CSS styling above:</p>
+                <code class = "codeBlock" data-code = "<svg viewbox = '0 0 100 100'>\n<!--regular circle with no other styling specified, will have a red fill and blue stroke because of the CSS-->\n<circle cx = '20' cy = '20' r = '14'/>\n\n<!--circle with styling specified--but with presentation attributes. The CSS will override this and the circle will still have red fill and blue stroke-->\n<circle cx = '69' cy = '58' r = '25' stroke = 'red' fill = 'orange'/>\n\n<!--circle with styling specified using the style attribute. This will retain its specific styling and appear with blue stroke and a teal fill-->\n<circle cx = '23' cy = '58' r = '15' style = 'stroke: blue; fill: teal; stroke-width: 3'/>\n</svg>" data-code-type = "HTML"></code>
+                
+                <!--CSS transitions-->
+                <p>You can easily use CSS to add transitions or animations to SVG elements, as well, such as changing fill or stroke on hover:</p>
+                <code class = "codeBlock" data-code = "<svg viewbox = '10 10 80 80'>\n<!--this circle will change fill color and stroke pattern (animating dasharray) on hover, which is why I defined those stylings as presentation attributes so CSS can later override them\nIt also has an id for easy access-->\n<circle cx = '50' cy = '50' r = '25' stroke-dasharray = '0 160px' fill = 'rgb(230, 180, 115)' stroke = 'stroke: rgb(181, 63, 100)' stroke-width =  '3px;' id = 'myCircle'/>\n</svg>" data-code-type = "HTML"></code>
+                <p>And the CSS:</p>
+                <code class = "codeBlock" data-code = "#myCircle {\ntransition: 1s ease; /*makes for a smooth transition instead of an abrupt one*/\n}\n\n/*apply this styling on hover!*/\n#myCircle:hover {\ncursor: pointer;\nstroke-dasharray: 16px 0; /*making it transition from the original 0 dash length 160 gap length to 16 dash length and 0 gap length, which creates a solid border*/\nfill: rgb(230, 89, 174); /*making it a nice pinkish-magenta color on hover*/\n}" data-code-type = "CSS"></code>
+                <p>This code will result in this cool hover effect:</p>
+                <svg viewBox = '10 10 80 80' class = "exampleSVG" width = '100px'>
+                    <circle cx = '50' cy = '50' r = '25' stroke-dasharray = '0 160px' fill = 'rgb(230, 180, 115)' style = 'stroke: rgb(181, 63, 100); stroke-width: 3px;' id = 'exampleHoverCircle'/>
+                </svg>
+                
+                <!--JS-->
+                <p>There are some things that CSS and SVG can't do, though, and that's where JS comes in. You can access inline SVG elements with JS with <code>document.getElementById</code> if you set an id with it, like any other HTML element. </p><p>To set and get <i>most</i> attributes, you can use the <code>setAttribute</code> and <code>getAttribute</code> methods (as well as their DOM 2, namespace-aware counterparts <code>setAttributeNS</code> and <code>getAttributeNS</code>, with the first parameter set to <code>null</code> if you're not using an attribute with a namespace prefix):</p>
+                <code class = "codeBlock" data-code = "//getting element\nvar svgElement = document.getElementById('mySVGElement');\n\n//sets fill on element to red\nsvgElement.setAttribute('fill', 'red');\n\n//the above line of code could also be: svgElement.setAttributeNS(null, 'fill', 'red');" data-code-type = "JS"></code>
+                <p>In order to create a new SVG element, you need to use the <code>createElementNS</code> method. The first parameter will be the namespace name, which for SVG is <code>http://www.w3.org/2000/svg</code>. The second parameter is the name of whatever element you are creating:</p>
+                <code class = "codeBlock" data-code = "var myNewCircle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');" data-code-type = "JS"></code>
+                <p>You can then manipulate this new element's attributes, add animations, and add event listeners to your liking. Appending it to the parent will use the usual methods (e.g. <code>appendChild</code>, <code>insertBefore</code>, or <code>insertAfter</code>).</p>
+                
+                <!--JS example-->
+                <p>Here's a quick example of code that will change a circle's fill on click:</p>
+                <code class = "codeBlock" data-code = "<!--the SVG:-->\n<svg viewBox = '0 0 100 100' width = '100px'>\n<!--I added a transition attribute so that the color fades from one to the next instead of having an abrupt change-->\n<circle cx = '50' cy = '50' r = '30' id = 'myCircle' style = 'transition: 0.5s ease;'/>\n</svg>" data-code-type = "HTML"></code>
+                <p>And the JS:</p>
+                <code class = "codeBlock" data-code = "//get our SVG circle element\nvar myCircleEl = document.getElementById('myCircle');\n\n//add an event listener on click\nmyCircleEl.addEventListener('click', function(e){\n//have it set the element's fill to some random color\n//e.target is the element on which this event was fired, which is our circle element\ne.target.setAttributeNS(null, 'fill', 'rgb(' + Math.random() * 255 + ', ' + Math.random() * 255 + ', ' + Math.random() * 255 + ')');\n});" data-code-type = "JS"></code>
+                <p>Try it out below:</p>
+                <svg viewBox = '0 0 100 100' width = '100px' class = 'exampleSVG'>
+                    <circle cx = '50' cy = '50' r = '30' id = 'exampleScriptCircle' style = 'transition: 0.5s ease;'></circle>
+                </svg>
+                
+                <!--disclaimer-->
+                <p><b>Disclaimer:</b> I am not entirely familiar with namespaces and the like. This is written from my current understanding after an hour or two looking into it, and I would appreciate if anyone who knows better could review this. </p>
+                <p>From what I understand, <i>most</i> SVG attributes that don't have a namespace prefix <i>can</i> be set with <code>setAttribute</code>, but some like <code>xlink</code> (the most common example) will need <code>setAttributeNS</code> with the namespace name declared as the first parameter. As to whether using <code>setAttribute</code> for SVG is good practice is questionable--I've seen trustworthy sources recommend you use the namespace-aware methods for everything. One of the links I used for this is MDN's <a href = "https://developer.mozilla.org/docs/Web/SVG/Namespaces_Crash_Course">Namespaces Crash Course</a> (link leads off KA).</p>
+            </div>
+        </div>
+        
+        <!--svg beyond-->
+        <div class = "articlePage" data-address = "SVG-Beyond-extraReading" data-title = "Additional capabilities">
+            <div class = "content">
+                <p>What I covered here is only a part of what SVG has to offer. I am not an expert on SVG and consequently my knowledge is lacking. However, there are several great resources out there that teach you more about what SVG can do.</p>
+                <p><b>All of the links in this article lead off KA.</b></p>
+                
+                <!--symbol-->
+                <h3>Symbols</h3>
+                <p>SVG symbols are made for reusable graphics, and can even have their own <code>viewBox</code> attributes. They are similarly reused with the <code>use</code> element after being defined once. Unlike how <code>g</code> needs to be defined in <code>defs</code> prior to use, the SVG <code>symbol</code> is automatically not drawn when defined.</p>
+                <p>A good article on the advantages of symbols vs. groups <a href = "https://css-tricks.com/svg-symbol-good-choice-icons/">can be found here</a>.</p>
+                
+                <!--gradients-->
+                <h3>More on gradients</h3>
+                <p>I covered only the most basic properties of gradients, which are enough for the most part. However, there are other properties out there that you can change to give you better control of where the gradient is and what it looks like, particularly for radial gradients.</p>
+                <p><a href = "https://developer.mozilla.org/docs/Web/SVG/Tutorial/Gradients">MDN has a nice tutorial</a> on gradients that includes many more properties than discussed here.</p>
+                
+                <!--text-->
+                <h3>More on text</h3>
+                <p>SVG text is a lot more versatile than the single-line, boring example I briefly touched upon. You can rotate individual letters, curve the text in a cool path, and otherwise style parts of text elements with the help of <code>tspan</code>s.</p>
+                <p>To find out more about SVG's <code>text</code> capabilities, read <a href = "https://developer.mozilla.org/docs/Web/SVG/Tutorial/Texts">MDN's page</a> on <code>text</code>.</p>
+                
+                <!--patterns-->
+                <h3>Patterns</h3>
+                <p>SVG also allows you to set the fill of elements to patterns, like stripes or polka dots or some other repeated image. This is done using the <code>pattern</code> element in combination with the <code>defs</code> element.</p>
+                <p>To see examples of simple patterns in action, check out this <a href = "https://css-tricks.com/snippets/svg/svg-patterns/">CSS Tricks article</a>. To learn more about defining and creating patterns, visit <a href = "https://developer.mozilla.org/docs/Web/SVG/Tutorial/Patterns">MDN's pattern tutorial</a>.</p>
+                
+                <!--filters-->
+                <h3>SVG filters</h3>
+                <p>SVG has many different filters that you can combine to create awesome effects, from drop shadows to torn edges to 3D-looking text! The 17 primitive filter types cover lighting, color adjustments, 3D effects, and composition of images and other filters.</p>
+                <p>To learn more about implementing filters, check out <a href = "https://developer.mozilla.org/docs/Web/SVG/Tutorial/Filter_effects">MDN's step-by-step example</a> on applying filters to an image</p>
+                <p><a href = "https://www.w3schools.com/graphics/svg_filters_intro.asp">W3Schools</a> has a nice list of all available SVG filter elements. Additionally, <a href = "https://www.smashingmagazine.com/2015/05/why-the-svg-filter-is-awesome/">this website</a> has a great article on the power of SVG filters and provides many awesome examples of what they can do.</p>
+            </div>
+        </div>
+        <div class = "articlePage" data-address = "SVG-Beyond-extraResources" data-title = "Extra resources">
+            <div class = "content">
+                <p>There are many great resources out there on the web if you want to learn more about SVG or have a handy reference for various elements and attributes.</p>
+                <p>Below are a few I've found very helpful in the past (or that I think would be helpful). Note that <b>all these links will lead off KA</b>.</p>
+                
+                <!--MDN :D -->
+                <h3>MDN</h3>
+                <p>MDN generally is a great resource all-around for web development and serves as an awesome reference for JS, HTML, CSS, and of course, SVG.</p>
+                <p>They have a <a href = "https://developer.mozilla.org/docs/Web/SVG/Tutorial">SVG tutorial</a> whose articles I linked to multiple times in the 'Additional capabilities' article. I believe I've covered (or otherwise linked) a decent amount of what is taught there, but it is still an invaluable resource.</p>
+                <p>Their <a href = "https://developer.mozilla.org/docs/Web/SVG/Element">SVG element reference</a> includes a documentation of all the SVG elements as well as their attributes.</p>
+                <p>Related to the elements reference is the <a href = "https://developer.mozilla.org/docs/Web/SVG/Attribute">attributes reference</a> containing, you guessed it, all the SVG attributes and what they do.</p>
+                <p>All of these more specific pages can be found under the general <a href = "https://developer.mozilla.org/docs/Web/SVG">SVG homepage</a> there.</p>
+                
+                <!--w3schools-->
+                <h3>W3Schools</h3>
+                <p>W3Schools is another all-around fantastic resource for not only web development but for other languages as well.</p>
+                <p>They also have a <a href = "https://www.w3schools.com/graphics/svg_intro.asp">SVG tutorial</a> that introduces and gives examples of many SVG elements.</p>
+                
+                <!--css tricks-->
+                <h3>CSS Tricks</h3>
+                <p>CSS Tricks has a complete <a href = "https://css-tricks.com/lodge/svg/">SVG course</a> that contains a whole list of videos and articles on SVG. I haven't looked at many of the articles but from the ones I have read, they seem very straightforward and are well-explained.</p>
+            </div>
+        </div>
+        
+        <!--canvas pages-->
+        <!--canvas intro-->
+        <div class = "articlePage" data-address = "canvas-Basics-gettingStarted" data-title = "Getting started: two basic shapes">
+            <div class = "content">
+                <!--introduction-->
+                <p>Using the canvas API to draw basic shapes might be pretty different from what you're used to. Many of the functions in PJS like <code>line</code> or <code>triangle</code> or <code>arc</code> have disappeared, and in their place is a lot of <code>beginPath</code> and <code>closePath</code> instead.</p>
+                <p>I'd recommend that you create your own functions for <code>line</code> and the like as you learn how to make the canvas API draw those shapes. This will make it easier and more familiar for you, and you'll be able to have your own basic version of PJS working in no time.</p>
+                <p>If you are turned away by the differences PJS has to this, then I'd recommend you check out "the other way" articles on this webpage. Otherwise, continue on.</p>
+                
+                <!--rect-->
+                <h3>Rectangles</h3>
+                <p>The easiest shape to draw with the canvas API is the <code>rect</code> element. There are three ways to draw rectangles immediately on to the canvas:</p>
+                <ul>
+                    <li><code>clearRect(x, y, width, height)</code> is only visible if you have other things drawn on the canvas. It turns everything in the rectangle to transparent black and effectively erases everything in that region.</li>
+                    <li><code>fillRect(x, y, width, height)</code> draws a filled rectangle with the top left corner at (x, y) and with its width and height specified by the third and fourth parameters. You'll need to set the canvas's <code>fillStyle</code> to some color, like "green," in order to see thsi rectangle.</li>
+                    <li><code>strokeRect(x, y, width, height)</code> draws a stroked rectangle at (x, y) with the specified width and height. It has no fill and its stroke is controlled by the canvas's <code>strokeStyle</code>.</li>
+                </ul>
+                <p>Let's see a quick example of how to implement them:</p>
+                <code class = "codeBlock" data-code = "//assume we've already gotten the context 'ctx' in the above lines\n\n//sets the canvas's fillStyle to green so the filled rect shows up\nctx.fillStyle = 'green';\n\n//draws a green rectangle with its top left corner at (20, 20) and with a width of 50 and a height of 30\nctx.fillRect(20, 20, 50, 40);\n\n//sets the canvas's strokeStyle to red so the stroke rect shows up\nctx.strokeStyle = 'red';\n\n//draws a rectangle with a red stroke and no fill with its top left corner at (40, 10) and with a width of 10 and a height of 25\nctx.strokeRect(40, 10, 10, 25);\n\n//clear out an area with the top left corner at (30, 30) and with a width of 50 and a height of 8\nctx.clearRect(30, 30, 50, 8);" data-code-type = "JS"></code>
+                
+                <!--text-->
+                <h3>Text</h3>
+                <p>The next easiest element to draw on the canvas is actually <code>text</code>. <code>text</code> has two methods similar to the basic methods for rect that directly draws some text on a canvas:</p>
+                <ul>
+                    <li><code>fillText(message, x, y)</code> draws some filled text with the bottom left corner of the text starting at (x, y). The color is based on the canvas's <code>fillStyle</code>.</li>
+                    <li><code>strokeText(message, x, y)</code> is like <code>fillText</code> but draws outlined text at (x, y) instead. It is dependent on the <code>strokeStyle</code> of the canvas.</li>
+                </ul>
+                <p>A straightforward implementation of text:</p>
+                <code class = "codeBlock" data-code = "//setting strokeStyle and fillStyle so text will show up\nctx.fillStyle = 'red';\nctx.strokeStyle = 'blue';\n\n//drawing red filled text that says 'hello' with the bottom left corner of the 'h' at (20, 20)\nctx.fillText('hello', 20, 20);\n\n//drawing 'world' that is outlined in blue with no fill at (20, 50)\nctx.strokeText('world', 20, 50);\n\n//note that you can't have both stroked and filled text or rectangles, since these methods either only draw a filled shape or a stroked shape" data-code-type = "JS"></code>
+                <p>Other styling for text can be specified by setting the canvas <code>font</code>. For more information, feel free to check out <a href = "https://developer.mozilla.org/docs/Web/API/Canvas_API/Tutorial/Drawing_text">MDN's article on drawing text</a> (leads off KA).</p>
+                
+                <!--note at the bottom-->
+                <p>From here on out, drawing shapes on the canvas won't be so familiar and straightforward. I'll cover how to draw some other basic shapes like <code>ellipse</code>s and <code>line</code>s in the next article, where we'll need to start using <code>beginPath()</code> and <code>closePath()</code>.</p>
+            </div>
+        </div>
+        <div class = "articlePage" data-address = "canvas-Basics-basicShapes" data-title = "More shapes">
+            <div class = "content">
+                <!--intro-->
+                <p>Most of what we'll draw on the canvas will need <code>beginPath()</code> and <code>closePath()</code>. So what do these two things do?</p>
+                <p><code>beginPath()</code> and <code>closePath()</code> start a new path and closes the path (attempts to draw a line between the current point and the first point in the current path) in the canvas, respectively. You define the boundaries and the shape of the path with the commands you put in between. If it helps you to compare this with PJS, the library's <code>beginShape()</code> and <code>endShape(CLOSE)</code> are equivalent to <code>beginPath()</code> and <code>closePath()</code>.</p>
+                <p>Unlike PJS's shapes created with <code>beginShape()</code> and <code>endShape()</code>, however, to make a path show up, you'll need to actually call <code>ctx.stroke();</code> or <code>ctx.fill();</code> to stroke or fill your path. These two commands will affect only your current path, so be sure to call them before you start a new path if you don't want them to affect other paths.</p>
+                <p>Now that we've gotten some basic understanding of <code>beginPath()</code> and <code>closePath()</code>, let's actually use them to make some shapes!</p>
+                
+                <!--rect-->
+                <h3>Rectangles</h3>
+                <p>Yup, not only can you use <code>fillRect</code> and <code>strokeRect</code> to create rectangles, you also have a <code>rect</code> method to draw rectangles in paths!</p>
+                <p>Its implementation is fairly straightforward and is pretty much the same as what you're used to with PJS:</p>
+                <code class = "codeBlock" data-code = "//set fill to green and stroke to blue, so our rect has green fill and blue stroke\nctx.fillStyle = 'green';\nctx.strokeStyle = 'blue';\n\n//begin path\nctx.beginPath();\n\n//draws a rect with the top left corner at (20, 10) with a width of 40 and a height of 25\nctx.rect(20, 10, 40, 25);\n\n//adding stroke and fill\nctx.stroke();\nctx.fill();" data-code-type = "JS"></code>
+                
+                <!--lines-->
+                <h3>Lines</h3>
+                <p>Lines in the canvas don't quite have a built-in function like PJS that takes in a starting and ending point, however, they're still relatively easy to execute.</p>
+                <p>Two basic methods in paths include the <code>moveTo(x, y)</code> command and the <code>lineTo(x, y)</code> command, which when combined will give you a line. The <code>moveTo</code> method basically picks up the pen and moves the current position to the specified x and y coordinates <i>without</i> drawing a line from the previous position to the new position. The <code>lineTo</code> command draws a line from the previous position to the new one, much like what <code>vertex</code> does in PJS.</p>
+                <p>Let's look at a simple implementation of a line: </p>
+                <code class = "codeBlock" data-code = "//setting stroke so line will show up\nctx.strokeStyle = 'blue';\n\n//beginning path\nctx.beginPath();\n\n//moving to start of line, in this case (25, 30)\nctx.moveTo(25, 30);\n\n//connecting it to the end point of the line, in this case (70, 55)\nctx.lineTo(70, 55);\n\n//don't forget your stroke\nctx.stroke();" data-code-type = "JS"></code>
+                
+                <!--ellipses-->
+                <h3>Ellipses</h3>
+                <p>Luckily for us, the canvas has a built-in ellipse method that we can use to draw an ellipse in a path! It's a little different from the <code>ellipse</code> function in PJS, though, since it has a few extra parameters controlling other things.</p>
+                <p>To create an ellipse, we'll do something like this:</p>
+                <code class = "codeBlock" data-code = "//set our fill style to green so the ellipse actually shows up when filled\nctx.fillStyle = 'green';\n\n//begin our path\nctx.beginPath();\n\n//draw an arbitrary ellipse--I haven't specified parameters yet\nctx.ellipse(x, y, rx, ry, rotation, startAngle, endAngle);\n\n//remember to fill our path!\nctx.fill();" data-code-type = "JS"></code>
+                <p>The first four parameters are very similar: <code>x</code> and <code>y</code> specify where the center of the ellipse is, and <code>rx</code> and <code>ry</code> specify the horizontal and vertical radius of the ellipse (the width and height of the ellipse will be two twice each of their respective parameters).</p>
+                <p>The other three are where it gets a little weirder. The <code>ellipse</code> method actually draws an elliptical arc in the path, which explains the extra parameters. The <code>rotation</code> parameter is the angle (in radians) that the entire ellipse is rotated. The <code>startAngle</code> and <code>endAngle</code> parameters (also in radians) specify the angles at which the elliptical arc starts and ends. They function similarly to the <code>startAngle</code> and <code>endAngle</code> parameters in the PJS <code>arc</code> function (though the "slice" of the ellipse based on these angles is drawn differently).</p>
+                <p>Let's see what some ellipses look like:</p>
+                <code class = "codeBlock" data-code = "//a complete green ellipse centered at (25, 10) with a width of 40 and a height of 16 with no rotation\nctx.fillStyle = 'green';\nctx.beginPath();\nctx.ellipse(25, 10, 20, 8, 0, 0, 2 * Math.PI);\nctx.fill();\n\n//a complete, red ellipse centered at (60, 25) with a width of 10 and a height of 15, rotated 30 degrees around its center\nctx.fillStyle = 'red';\nctx.beginPath();\nctx.ellipse(60, 25, 10, 15, 30 * Math.PI/180, 0, 2 * Math.PI);\nctx.fill();\n\n//a blue ellipse centered at (20, 45) with a width of 30 and a height of 40. Its starting angle is at 0 and goes to 230 degrees\n//as you can see, 'arcs' are drawn differently--they are not pie-slice-shaped but instead are 'cut off' by a line connecting the start and end points of the arc\nctx.fillStyle = 'blue';\nctx.beginPath();\nctx.ellipse(20, 45, 15, 20, 0, 0, 230 * Math.PI/180);\nctx.fill();" data-code-type = "JS"></code>
+                <p>That code would give this image:</p>
+                <canvas class = "exampleCanvas" id = "exampleEllipsesCanvas" width = "160px" height = "160px"></canvas>
+                
+                <!--arcs-->
+                <h3>Arcs</h3>
+                <p>Unlike arcs in PJS, arcs with the built-in method will always be circular. They also won't be the pie-shaped slices that you're used to in PJS and will instead take on a shape similar to incomplete ellipses (appearing as if one part of the shape was loppped off in a line connecting the start and end points of the arc).</p>
+                <p><code>arc</code> takes 5 parameters: the <code>x</code>, <code>y</code>, <code>radius</code>, <code>startAngle</code>, and <code>endAngle</code>. The <code>x</code> and <code>y</code> paramters control the coordinates of the center fo the arc, and the <code>radius</code> naturally controls the radius of the arc. The <code>startAngle</code> and <code>endAngle</code> are like the PJS arc's start and end angle parameters, except they're in radians.</p>
+                <p>To make pie-shaped arcs like you're used to in PJS, simply add a <code>moveTo(x, y)</code> (with the x and y being the center of the arc) before you call the arc.</p>
+                <p>Here's an example implementation of arcs:</p>
+                <code class = "codeBlock" data-code = "//creating a red stroked arc centered at (15, 20) with a radius of 10 that goes from 0 to 230 degrees\nctx.strokeStyle = 'red';\nctx.beginPath();\nctx.arc(15, 20, 10, 0, 230 * Math.PI/180);\nctx.stroke();\n\n//creating a blue filled arc centered at (45, 20) with a radius of 10 that goes from 0 to 230 degrees\nctx.fillStyle = 'blue';\nctx.beginPath();\nctx.arc(45, 20, 10, 0, 230 * Math.PI/180);\nctx.fill();\n//we don't call ctx.stroke() because I don't want to apply stroke on this path\n\n//creating a pie-shaped green arc centered at (30, 40) with a radius of 10 that goes from 0 to 230 degrees\nctx.fillStyle = 'green';\nctx.beginPath();\nctx.moveTo(30, 40);\nctx.arc(30, 40, 10, 0, 230 * Math.PI/180);\nctx.fill();" data-code-type = "JS"></code>
+                <p>And the result: </p>
+                <canvas class = "exampleCanvas" id = "exampleArcsCanvas" width = "160px" height = "160px"></canvas>
+            </div>
+        </div>
+        <div class = "articlePage" data-address = "canvas-Basics-paths" data-title = "Complex shapes">
+            <div class = "content">
+                <p>Aside from lines, ellipses, and arcs, you might've guessed that the canvas has methods available for more complex shapes. You'd be right--the Canvas API has a straightforward equivalent to both <code>vertex</code> and <code>bezierVertex</code> (<code>curveVertex</code> is trickier and I'd be happy if anyone reading could give a way to replicate the function). Many of the methods covered in this section are similar to or the same as some of the commands you can use in SVG paths, as well.</p>
+                
+                <!--lineTo/moveTo-->
+                <h3>Polygons</h3>
+                <p>In the last article, you were introduced to <code>moveTo</code> and <code>lineTo</code> when creating simple lines. As you can imagine, many <code>lineTo</code>s strung together will be able to create any straight-edged polygon you want, which makes it a handy equivalent to PJS's <code>vertex</code>:</p>
+                <code class = "codeBlock" data-code = "//fill/stroke stuff\nctx.fillStyle = 'blue';\nctx.strokeStyle = 'red';\n\n//draws a pentagon with vertices at (10, 10), (30, 1\nctx.lineTo(30, 15);\nctx.lineTo(40, 5);\nctx.lineTo(50, 30);\nctx.lineTo(25, 50);\n\n//stroke and fill\nctx.stroke();\nctx.fill();" data-code-type = "JS"></code>
+                <p>Note that you may find it helpful to create <code>triangle</code> or <code>quad</code> functions like PJS has to make it easier to draw simple polygons without so many lines of code.</p>
+                
+                <!--bezier stuff-->
+                <h3>Beziers</h3>
+                <p>Those of you familiar with making graphics in PJS may be familiar with <code>bezierVertex</code> and its power when it comes to creating any curved, irregular shape. The good news is that the Canvas API's <code>bezierCurveTo</code> method is equivalent to <code>bezierVertex</code> and takes the same parameters: <code>cx1</code>, <code>cy1</code>, <code>cx3</code>, <code>cy2</code>, <code>x2</code>, and <code>y2</code>, which determine the coordinates of the two control points and the ending point of the bezier curve.</p>
+                <p>If you just want to create a bezier like the PJS function does, you'll simply use a <code>moveTo</code> to the start of the curve and use one <code>bezierCurveTo</code> to create the rest of the bezier:</p>
+                <code class = "codeBlock" data-code = "//setting stroke\nctx.strokeStyle = 'blue';\n\n//begin shape\nctx.beginPath();\n\n//draws a bezier, equivalent to bezier(10, 10, 25, 0, 40, 55, 60, 45) in PJS\nctx.moveTo(10, 10);\nctx.bezierCurveTo(25, 0, 40, 55, 60, 45);\n\n//adding stroke\nctx.stroke();" data-code-type = "JS"></code>
+                <p>It's also worth noting that the Canvas API also offers another way of creating curves, through the <code>quadraticCurveTo</code> method. Unlike <code>bezierCurveTo</code>, <code>quadraticCurveTo</code> creates a <i>quadratic</i> bezier curve, not a cubic bezier curve, meaning that it only has one control point and not two. As a result of that, it takes 4 parameters, not 6: <code>cx</code>, <code>cy</code>, <code>x2</code>, and <code>y2</code>, which determine the coordinates of the one control point and the ending point, respectively.</p>
+                <p>This won't be a tutorial on what beziers are and how they function, since I'm assuming background knowledge in that area for PJS. If you're new to complex shapes, I'd recommend you check out KA's documentation on the PJS functions and play around with them a bit to gain a better understanding of them.</p>
+                
+                <!--arcs-->
+                <h3>More arcs</h3>
+                <p>Other than the <code>arc</code> method, the canvas also has an <code>arcTo</code> method that also draws a circular arc, but instead of specifying angles, you specify points instead.</p>
+                <p>The <code>arcTo</code> method takes 5 parameters: <code>cx1</code>, <code>cy1</code>, <code>cx2</code>, <code>cy2</code>, and <code>r</code>, which represent the coordinates of the two control points and the radius of the circular arc.</p>
+                <p>How do the control points affect the arc? Well, first imagine there are two line segments: one drawn from the current position to the first control point, and another drawn from the first control point to the second control point. These two lines will be tangent to the circular arc drawn. Here's a visualization of it (based off of MDN's helpful visualization): </p>
+                <code class = "codeBlock" data-code = "//styling stuff\nctx.fillStyle = 'red';\nctx.strokeStyle = 'blue';\n\n//drawing the arc\nctx.beginPath();\nctx.moveTo(20, 20);\nctx.arcTo(30, 45, 60, 15, 15);\nctx.stroke();\n\n//drawing the lines tangent to the arc:\nctx.strokeStyle = 'black';\nctx.beginPath();\nctx.moveTo(20, 20);\nctx.lineTo(30, 45);\nctx.lineTo(60, 15);\nctx.stroke();\n\n//highlighting the control points (red) and the current point (blue)\nctx.beginPath();\nctx.arc(30, 45, 3, 0, Math.PI * 2);\nctx.arc(60, 15, 3, 0, Math.PI * 2);\nctx.fill();\nctx.fillStyle = 'blue';\nctx.beginPath();\nctx.arc(20, 20, 3, 0, Math.PI * 2);\nctx.fill();" data-code-type = "JS"></code>
+                <canvas class = "exampleCanvas" id = "arcToVisualization" width = "120px" height = "120px"></canvas>
+                <p>The <code>arcTo</code> method is very useful for creating rounded corners, since it takes an otherwise sharp corner (the tangent lines in the diagram above) and rounds it out. You'll need <code>arcTo</code> if you want to create a canvas equivalent of the PJS <code>rect</code> function that is capable of creating rounded corners. Be aware that for very large radii, the arc may not start at the current point but instead go beyond it because it cannot fit in the area otherwise.</p>
+            </div>
+        </div>
+        <div class = "articlePage" data-address = "canvas-Basics-changingStyling" data-title = "Transformations and changing styling">
+            <div class = "content">
+                <p>You've already seen, so far, how to change basic styling of elements by setting <code>fillStyle</code> and <code>strokeStyle</code> to different colors. In addition to using <code>rgba</code> for transparent colors, you can also set a <code>globalAlpha</code> property that is used to determine the opacity of all colors after you set it (with 0 being transparent and 1 being opaque):</p>
+                <code class = "codeBlock" data-code = "//these will be opaque\nctx.fillStyle = 'red';\nctx.fillRect(0, 0, 30, 30);\nctx.fillStyle = 'green';\nctx.fillRect(30, 0, 30, 30);\nctx.fillStyle = 'blue';\nctx.fillRect(0, 30, 60, 30);\n\n//set the globalAlpha property to 0.3, making everything after this translucent\nctx.globalAlpha = 0.3;\n\n//these will be translucent, as if we'd set the fillStyle to rgba(255, 255, 255, 0.3) and not to opaque white\nctx.fillStyle = 'white';\nctx.fillRect(15, 15, 30, 30);\nctx.fillRect(20, 20, 20, 20);" data-code-type = "JS"></code>
+                
+                <!--stroke styling-->
+                <p>Like in SVG and in PJS, there are also different properties you can set to change the styling of the stroke:</p>
+                <ul>
+                    <li><code>lineWidth</code> is a number that determines the width of the stroke, equivalent to what the <code>strokeWeight</code> function does in PJS. The default value is 1.</li>
+                    <li><code>lineCap</code> can be set to <code>"butt"</code>, <code>"round"</code>, or <code>"square"</code> and controls the appearance of the end of lines. This is equivalent to PJS's <code>strokeCap</code> function, with <code>butt</code> equivalent to PJS <code>SQUARE</code>, <code>round</code> equal to PJS <code>ROUND</code>, and <code>square</code> equal to PJS <code>PROJECT</code>. The default value is <code>butt</code>.</li>
+                    <li><code>lineJoin</code> can be set to <code>"round"</code>, <code>"bevel"</code>, or <code>"miter"</code> and controls the appearance of the corners where two lines are joined. This is the same as what <code>strokeJoin</code> does in PJS. The default value is <code>"miter"</code></li>
+                </ul>
+                <p>The canvas API also allows you to easily add dashed stroke using the <code>setLineDash</code> method. It takes an array as a parameter that specifies the pattern of the lengths of gaps and dashes in the stroke (similar to the <code>stroke-dasharray</code> property in SVG):</p>
+                <code class = "codeBlock" data-code = "//set stroke\nctx.strokeStyle = 'black';\nctx.strokeWidth = 2;\n\n//set line dash to [10, 5], meaning that dashes will be 10 units long and gaps will be 5 units long, then drawing respective line\nctx.setLineDash([10, 5]);\nctx.beginPath();\nctx.moveTo(10, 10);\nctx.lineTo(100, 10);\nctx.stroke();\n\n//set line dash to [15, 3, 3, 3] meaning the first dash is 15 units long, the first gap is 3 units long, the second dash is 3 units long, and the second dash is 3 units long in the pattern\nctx.setLineDash([15, 3, 3, 3]);\nctx.beginPath();\nctx.moveTo(10, 20);\nctx.lineTo(100, 20);\nctx.stroke();\n\n//setting line dash to [20, 3, 3], which makes the first dash 20 units long, the first gap 3 units long, the second dash 3 units long, the second gap 20 units long, the third dash 3 units long, and so on\nctx.setLineDash([20, 3, 3]);\nctx.moveTo(10, 30);\nctx.lineTo(100, 30);\nctx.stroke();" data-code-type = "JS"></code>
+                <canvas class = "exampleCanvas" id = "lineStrokeExample" width = "150px" height = "65px"></canvas>
+                
+                <!--transformations-->
+                <p>What would a canvas be if it didn't have transformations? Many of your PJS transformations also easily translate to the Canvas API:</p>
+                <ul>
+                    <li><code>translate(x, y)</code> works pretty much exactly the same way as before.</li>
+                    <li><code>rotate(angle)</code> also works similarly, except the angle (as always) is in radians.</li>
+                    <li><code>scale(xAmt, yAmt)</code> works the same, except you <i>must</i> specify both parameters. In PJS you could omit one parameter and the yAmt was automatically assumed to be the same, but in the canvas API that doesn't happen anymore.</li>
+                </ul>
+                <p>There's also a <code>transform</code> function and <code>setTransform</code> function that combines many transformations into one handy function that manipulates the transformation matrix. Learn more about them with <a href = "https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/transform">MDN's helpful reference</a> (link leads off KA--<code>setTransform</code> is linked from the <code>transform</code> method's reference).</p>
+                <p>You might be asking whether we have any equivalent to <code>pushMatrix</code>, <code>popMatrix</code>, and <code>resetMatrix</code> in the Canvas API. As a matter of fact, we do!</p>
+                <p><code>pushMatrix</code>'s and <code>popMatrix</code>'s equivalent methods are <code>save</code> and <code>restore</code>, respectively. A more accurate comparison actually can be made between <code>pushStyle</code> and <code>popStyle</code> and <code>save</code> and <code>restore</code>, since <code>save</code> saves not only the current transformation matrix but the current styling properties, too. <code>restore</code>, being aptly named, restores the canvas to its last saved state, so any styling changes or transformations you apply between <code>save</code> and <code>restore</code> won't affect other parts of your graphic.</p>
+                <p><code>resetMatrix</code>'s equivalent is <code>resetTransform</code>, which resets the canvas's transformations to its original state. This tends to be a less popular option (at least from what I've seen) for controlling transformations because it doesn't have the level of control that <code>save</code> and <code>restore</code> give you over which areas are affected by what transformations.</p>
+            </div>
+        </div>
+        
+        <!--canvas PJS and beyond-->
+        <div class = "articlePage" data-address = "canvas-PJS and Beyond-PJSWebpage" data-title = "Using PJS (a very short article)">
+            <div class = "content">
+                <p>Processing JS is a pretty useful library built on the Canvas API and is probably what a lot of you are most familiar with. To use PJS inside a webpage, you can check out KA's <a href = "https://www.khanacademy.org/computing/computer-programming/programming-games-visualizations/advanced-development-tools/a/using-processingjs-outside-khan-academy">article on using PJS in webpages</a> to learn more.</p>
+                <p>The simplistic rundown of things is that you have the canvas element you want to draw on (as always), load in the PJS library, and then create a new <code>Processing</code> instance using the canvas and a function containing your graphics code as parameters. The function for drawing on the canvas will take one parameter, which is the drawing context, and all commands that refer to the canvas as the object need to be prefixed with this context.</p>
+                
+                <!--discontinuance-->
+                <p>However, note that Processing JS is no longer being updated (the last version is 1.6.6 and any further updates were discontinued in December of 2018). If you are doing things off KA, you should probably look into other  libraries built on the canvas, such as p5js.</p>
+                <p>(KA even lists some other popular graphics libraries in their <a href = "https://www.khanacademy.org/computing/computer-programming/html-css-js/using-js-libraries-in-your-webpage/a/the-world-of-js-libraries">JS libraries article</a> that you could look into. p5js is probably the most similar in syntax and functionality to PJS, though, and requires minimal tweaking)</p>
+                
+                <!--with deprecation and closing-->
+                <p>Additionally, it's worth noting that the template KA gives you in the article above uses <code>with</code>, which <a href = "https://developer.mozilla.org/docs/Web/JavaScript/Reference/Statements/with">according to MDN</a> (link leads off KA) is not recommended and has been deprecated. Instead, when using the template, you'll want to prefix all commands with the processing instance like you need to do with the regular API (you may want to rename it to something shorter, like <code>ctx</code>). <code>with(processingInstance)</code> does the same thing (and with less effort, presumably) but it's never good to continue using deprecated commands if you have alternatives to it--they're deprecated for a reason, after all.</p>
+                <p>Whether you use PJS or other libraries or decide to stick with the built-in API, happy coding with the canvas!</p>
+            </div>
+        </div>
+        <div class = "articlePage" data-address = "canvas-PJS and Beyond-extraReading" data-title = "Additional topics">
+            <div class = "content">
+                <p>Again, like with SVG, I am by no means any expert on the Canvas API and I'll be the first to admit I haven't used all the methods it has to offer. There were quite a few topics I felt I couldn't properly teach or couldn't write a whole lesson about, but I still felt were useful aspects of the canvas. I've linked various resources in the parts below that help explain these topics in more detail than I can.</p>
+                <p>Note that <b>all links lead off KA</b>.</p>
+                
+                <!--gradients-->
+                <h3>Gradients</h3>
+                <p>Like SVG, the Canvas API actually has a built-in way to create both linear and radial gradients very easily (in contrast to how you have to use for loops and <code>lerpColor</code> or translucency to create gradients in PJS).</p>
+                <p>Also like SVG, you will have to add in color stops specifying the colors you want in the gradient at some particular point (from 0 to 1) in the gradient. You'll do this with an <code>.addColorStop()</code> method after defining the position of the gradient, however. To apply it to a shape, set the <code>fillStyle</code> or <code>strokeStyle</code> to the variable that you assigned to the gradient.</p>
+                <p>MDN has helpful explanations on both <a href = "https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/createLinearGradient">linear gradients</a> and <a href = "https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/createRadialGradient">radial gradients</a> that you can check out for more information.</p>
+                
+                <!--shadows-->
+                <h3>Shadows</h3>
+                <p>The HTML canvas also provides various properties you can set to create shadows around drawn elements. The default setting is, of course, that there is no shadow, but once you set the properties so that the shadow shows up, all the elements will have shadows.</p>
+                <p>To set the amount of blur you want the shadow to have, use the <code>shadowBlur</code> property and set it to some nonzero number. The larger the number, the more blurry you get.</p>
+                <p>You can also change the shadow color with the <code>shadowColor</code> property, by setting it similarly to how you'd set the fill or stroke color.</p>
+                <p>Lastly, to control the positioning of the shadow with respect to the elements' positions, set the <code>shadowOffsetX</code> and <code>shadowOffsetY</code> properties that represent how far to the right and how far down the shadows will be shifted (negative numbers will shift the shadow to the left and up).</p>
+                
+                <!--patterns-->
+                <h3>Patterns</h3>
+                <p>Also like in SVG, you can create repeating patterns to fill an element (or to use as the stroke of an element) with the Canvas API.</p>
+                <p>A lot of different forms of images can be used as the image for the pattern to be repeated. <a href = "https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/createPattern">MDN has a wonderful documentation</a> of the <code>createPattern</code> method and how it can be used to create patterns from different images.</p>
+                
+                <!--clipping and compositing-->
+                <h3>Clipping and Compositing</h3>
+                <p>The Canvas API has many ways you can combine two images that you can set using the <code>globalCompositeOperation</code> property. There are 12 different operations you can perform, including things like <code>multiply</code>, <code>overlay</code>, <code>darken</code>, <code>color dodge</code>, and more, each with different effects.</p>
+                <p>You can also easily create clipping paths to only show parts of a graphic within a path using the <code>clip</code> method (which turns the current path into a path that clips whatever follows it).</p>
+                <p>For an introduction to clipping and to the compositing operations available, visit <a href = "https://developer.mozilla.org/docs/Web/API/Canvas_API/Tutorial/Compositing">MDN's helpful page</a> on the two topics. For more on clipping, visit <a href = "https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/clip">MDN's documentation of clip</a> as well.</p>
+                
+                <!--animation-->
+                <h3>Animation and events</h3>
+                <p>PJS has built-in functions like <code>draw</code> or <code>mouseClicked</code> that are called based on user interaction (or in the case of <code>draw</code>, just automatically several times per second). You'll be able to replicate most of those functions by setting event listeners on the canvas and passing in the function you want to fire based on user interaction. For example, an alternative to mouseClicked might look like this:</p>
+                <code class = "codeBlock" data-code = "//get canvas element and context\nvar canvasEl = document.getElementById('myCanvas'),\nctx = canvasEl.getContext('2d');\n\n//set an event listener on click for the entire canvas element\ncanvasEl.addEventListener('click', function(){\n//do whatever you need to do on click here\n});" data-code-type = "JS"></code>
+                <p>For a list of possible event listeners, you can go to <a href = "https://developer.mozilla.org/docs/Web/Events">MDN's complete reference</a> or <a href = "https://www.khanacademy.org/computing/computer-programming/html-css-js/html-js-dom-events/a/dom-event-types">KA's list of common event listener types</a>.</p>
+                <p>For a <code>draw</code> function replacement, you might want to consider using <code>setInterval</code> or <code>requestAnimationFrame</code>, both of which are covered in <a href = "https://www.khanacademy.org/computing/computer-programming/html-css-js">KA's HTML with JS course</a>.</p>
+                
+                <!--imageData-->
+                <h3>imageData</h3>
+                <p>Being able to manipulate individual pixels is one of the canvas's advantages. You can get image data using the <code>getImageData</code> method, with the added benefit of being able to specify the rectangular area from which you want to get pixel data. To update the pixels after modification, use <code>putImageData</code> with the added benefit of being able to determine where the top left corner of the painted pixel image will be.</p>
+                <p>For more information about <code>imageData</code> and its uses, visit <a href = "https://developer.mozilla.org/docs/Web/API/Canvas_API/Tutorial/Pixel_manipulation_with_canvas">MDN's tutorial on pixel manipulation</a>.</p>
+            </div>
+        </div>
+        <div class = "articlePage" data-address = "canvas-PJS and Beyond-extraResources" data-title = "Extra resources">
+            <div class = "content">
+                <!--introduction-->
+                <p>There are many helpful resources out there that document and teach about the capabilities of the Canvas API. Whether it be a reference or tutorials, here are two valuable resources I found that I feel may be helpful:</p>
+                <p>Note that again, <b>all links lead off KA</b>.</p>
+                
+                <!--mdn-->
+                <h3>MDN</h3>
+                <p>I've linked to MDN throughout the additional topics page and whenever I couldn't fully explain something in detail all across the webpage--I think that explains how great this site is. By now you might recognize it as one of the best resources out there when it comes to web development, and rightly so.</p>
+                <p>Their <a href = "https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D">page on the rendering context</a> comes with a complete reference of methods and properties you can use with the canvas (with links to pages with further explanations and examples). I've used this on numerous occasions and still find it incredibly helpful.</p>
+                <p>They also have a <a href = "https://developer.mozilla.org/docs/Web/API/Canvas_API/Tutorial">tutorial for the canvas</a> that covers everything from the basics to animation and pixel manipulation. You'll get everything that I briefly covered here and many of the things I talked about in the "additional capabilities" article as well (I linked many of MDN's tutorials in that article).</p>
+                <p>All of those links (and other helpful ones) can be found under the general <a href = "https://developer.mozilla.org/docs/Web/API/Canvas_API">Canvas API homepage</a> they have there.</p>
+                
+                <!--w3schools-->
+                <h3>W3Schools</h3>
+                <p>Along with MDN, W3Schools proves to be a very invaluable resource for not only SVG and Canvas but for other languages as well.</p>
+                <p>They also have a <a href = "https://www.w3schools.com/tags/ref_canvas.asp">useful canvas reference</a> that cover everything you need to know with links that explain properties and methods in more detail (as an added bonus, it's formatted a little more compactly than MDN's reference and makes it easier to scroll through and find things more quickly).</p>
+                <p><a href = "https://www.w3schools.com/graphics/canvas_intro.asp">Their canvas tutorial</a>, while perhaps not quite as in depth as MDN's, may also be helpful for you.</p>
+            </div>
+        </div>
+    </body>
+    
+    <!--script for dynamically appending stuff, page changes, and adding code blocks-->
+    <script>
+        //changing pages {
+        //pages hierarchy
+        var pages = {
+            "home": document.getElementById("homePage")
+        };
+        
+        //change page function
+        var changePage = (function(){
+            //for easy tweaking
+            var transitionTime = 0.25;
+            var prevPage = "home", curPage = "home";
+            
+            //actual function
+            return function(address){
+                if(address !== curPage){
+                    //updating variables
+                    prevPage = curPage;
+                    curPage = address;
+                    
+                    //fading out
+                    pages[prevPage].style.animation = "fadeout " + transitionTime + "s ease forwards";
+                    window.setTimeout(function(){
+                        pages[prevPage].style.display = "none";
+                    }, transitionTime * 1000);
+                    
+                    //fading in
+                    pages[curPage].style.opacity = "0";
+                    pages[curPage].style.display = "block";
+                    pages[curPage].style.animation = "fadein " + transitionTime + "s " + transitionTime + "s ease forwards";
+                    
+                    //scroll
+                    window.scroll({ top: 0, behavior: 'smooth' });
+                }
+            };
+        })();
+        //}
+        
+        //creating additional info pages {
+        var articlePages = document.getElementsByClassName("articlePage"),
+        svgNameSpace = "http://www.w3.org/2000/svg";
+        
+        //back/forward button creation
+        var createArrowButton = (function(){
+            //svgs to make things easier
+            var svgCode = {
+                "back": {
+                    viewBox: "-2 -1 20 12",
+                    width: "30px", height: "18px", top: "75px",
+                    code: "<path d = \"M 5, 0 L 0, 5 L 5, 10 M 0, 5 L 16, 5\"/>"
+                },
+                "next": {
+                    viewBox: "-2 -1 20 12",
+                    width: "30px", height: "18px", top: "55px",
+                    code: "<path d = \"M 11, 0 L 16, 5 L 11, 10 M 0, 5 L 16, 5\"/>"
+                },
+                "home": {
+                    viewBox: "1.5 0 20 21",
+                    width: "40px", height: "40px", top: "10px",
+                    code: "<path d = \"M 10, 2 L 18, 11 L 15.5, 11 L 15.5, 19 L 11.5, 19 L 11.5, 15 L 8.5, 15 L 8.5, 19 L 4.5, 19 L 4.5, 11 L 2, 11 Z\" style = \"stroke-width: 0.8px;\"/>"
+                }
+            };
+            
+            //getting lengths of svg page array and canvas page array
+            var SVGPageLength = 0, CanvPageLength = 0;
+            for(var i = 0; i < articlePages.length; i++){
+                var type = articlePages[i].dataset.address.split("-")[0];
+                if(type === "SVG"){
+                    SVGPageLength++;
+                }
+                else {
+                    CanvPageLength++;
+                }
+            }
+            
+            //actually creating button function
+            return function(type, isSVG, ind, target, targetChild){
+                //creating svg element
+                var newSVG = document.createElementNS(svgNameSpace, "svg");
+                newSVG.setAttributeNS(null, "class", "arrowButton" + (type === "home" ? " homeButton":""));
+                newSVG.setAttributeNS(null, "viewBox", svgCode[type].viewBox);
+                newSVG.setAttributeNS(null, "width", svgCode[type].width);
+                newSVG.setAttributeNS(null, "height", svgCode[type].height);
+                newSVG.style.top = svgCode[type].top;
+                newSVG.innerHTML += svgCode[type].code;
+                target.insertBefore(newSVG, targetChild);
+                
+                //getting "target" (what to change the page to) value
+                var targetInd, targArrLength = isSVG === true ? SVGPageLength:CanvPageLength, offset = isSVG === true ? 1:(SVGPageLength + 1);
+                switch(type){
+                    case "home": 
+                        targetInd = 0;
+                    break;
+                    case "back":
+                        targetInd = ind - 1 < 0 ? null:(offset + (ind - 1));
+                    break;
+                    default:
+                        targetInd = ind + 1 > targArrLength - 1 ? null:(offset + (ind + 1));
+                    break;
+                }
+                
+                //if target ind is not null, add click function
+                if(targetInd !== null){
+                    var clickFunc = function(){
+                        changePage(Object.keys(pages)[targetInd]);
+                    };
+                    newSVG.addEventListener("click", clickFunc);
+                }
+                
+                //otherwise, gray it out
+                else {
+                    newSVG.setAttribute("class", newSVG.getAttribute("class") + " grayout");
+                }
+            };
+        })();
+        
+        //setting up info pages 
+        (function(){
+            //getting result elements where links will be held
+            var SVGParent = document.getElementById("svgTable"), canvasParent = document.getElementById("canvasTable");
+            
+            //getting nav things
+            var navEls = document.getElementById("homePageNav").getElementsByTagName("li"), 
+            svgNavEl = navEls[1], canvasNavEl = navEls[2];
+            
+            //create page article function (not so much "creating" per say but manipulating it to standard appearance)
+            var createArticle = function(page, target, address, ind, isSVG){
+                //make it a page and add it to pages
+                page.className += " page";
+                pages[address] = page;
+                
+                //get content child and add h3 title
+                var contentChild = page.getElementsByClassName("content")[0];
+                var newTitle = document.createElement("h2");
+                newTitle.textContent = page.dataset.title;
+                contentChild.insertBefore(newTitle, contentChild.firstChild);
+                
+                //arrow buttons
+                createArrowButton("home", isSVG, ind, page, contentChild);
+                createArrowButton("back", isSVG, ind, page, contentChild);
+                createArrowButton("next", isSVG, ind, page, contentChild);
+                
+                //creating link in home page
+                var newLink = document.createElement("span"), newLi = document.createElement("li");
+                newLink.className = "pageLink";
+                newLink.textContent = page.dataset.title;
+                newLi.appendChild(newLink);
+                target.appendChild(newLi);
+                
+                //adding event listener
+                newLink.addEventListener("click", function(){
+                    changePage(address);
+                });
+            };
+            
+            //create drop down functions (for ease)
+            var createDropDown = function(target){
+                var newDropEl = document.createElement("div"),
+                newDropContent = document.createElement("ul");
+                newDropContent.className = "dropDown";
+                newDropEl.appendChild(newDropContent);
+                target.appendChild(newDropEl);
+                return newDropContent;
+            };
+            var createDropClickFunc = function(address){
+                return function(){
+                    changePage(address);
+                };
+            };
+            
+            //loop through pages--only works if divs are in order (all canvases after SVGs or SVGs after canvases, and all articles of a certain type i.e. "Basics" being lumped together)
+            var index = 0, curList = "", curListEl = null,
+            curDropEl = createDropDown(svgNavEl),
+            isSVG = true, parentEl = SVGParent;
+            for(var i = 0; i < articlePages.length; i++){
+                //get address of page
+                var address = articlePages[i].dataset.address.split("-"), joinedAddress = address.join("");
+                
+                //keeping track of type and switching accordingly
+                if(address[0] !== "SVG" && isSVG){
+                    //reset--it must be a canvas article, so start counting canvas articles from here on out
+                    index = 0;
+                    isSVG = false;
+                    
+                    //switch "result element" to the canvas parent element
+                    parentEl = canvasParent;
+                    
+                    //create new drop down for canvas in nav
+                    curDropEl = createDropDown(canvasNavEl);
+                }
+                
+                //creating "lists" of links in the home page (if the article's list title is different from the current list title, create a new one)
+                if(address[1] !== curList){
+                    //keep track of current list title
+                    curList = address[1];
+                    
+                    //create a new div with list of links (for the home page)
+                    var newDiv = document.createElement("div"), 
+                    newList = document.createElement("ul"),
+                    newTitle = document.createElement("h3"),
+                    newSVG = document.createElementNS(svgNameSpace, "svg");
+                    
+                    //adding content
+                    newTitle.textContent = address[1];
+                    newDiv.className = "homePageLinks";
+                    newSVG.innerHTML = "<use href = \"#diamond\" fill = \"url(#blueStripes)\"/><use href = \"#diamond\" fill = \"url(#blueStripes)\" transform = \"translate(-35, 31) scale(0.8)\"/><use href = \"#diamond\" fill = \"url(#blueStripes)\" transform = \"translate(0, 62)\"/>";
+                    newSVG.setAttributeNS(null, "viewBox", "-61 -31 122 122");
+                    
+                    //appending
+                    newDiv.appendChild(newSVG);
+                    newDiv.appendChild(newTitle);
+                    newDiv.appendChild(newList);
+                    parentEl.appendChild(newDiv);
+                    
+                    //keep track of current list element
+                    curListEl = newList;
+                }
+                
+                //create article
+                createArticle(articlePages[i], curListEl, joinedAddress, index, isSVG);
+                
+                //add li to drop down of drop down
+                var newLi = document.createElement("li");
+                newLi.textContent = articlePages[i].dataset.title;
+                curDropEl.appendChild(newLi);
+                newLi.addEventListener("click", createDropClickFunc(joinedAddress));
+                
+                //increment index in list of "type" (SVG or Canvas)
+                index++;
+            }
+        })();
+        
+        //examples {
+        //function for drawing on example canvases
+        function drawOnCanvas(id, func){
+            var canvEl = document.getElementById(id),
+            ctx = canvEl.getContext("2d");
+            func(ctx, canvEl);
+        };
+        
+        //that one example SVGcircle that uses JS
+        var exampleCircleEl = document.getElementById("exampleScriptCircle");
+        exampleCircleEl.addEventListener("click", function(e){
+            e.target.setAttributeNS(null, "fill", "rgb(" + Math.random() * 255 + ", " + Math.random() * 255 + ", " + Math.random() * 255 + ")");
+        });
+        
+        //ellipse example canvas
+        drawOnCanvas("exampleEllipsesCanvas", function(ctx, el){
+            //green ellipse
+            ctx.scale(2, 2);
+            ctx.fillStyle = 'green';
+            ctx.beginPath();
+            ctx.ellipse(25, 10, 20, 8, 0, 0, 2 * Math.PI);
+            ctx.fill();
+            
+            //rotated red ellipse
+            ctx.fillStyle = 'red';
+            ctx.beginPath();
+            ctx.ellipse(60, 25, 10, 15, 30 * Math.PI/180, 0, 2 * Math.PI);
+            ctx.fill();
+            
+            //incomplete blue ellipse
+            ctx.fillStyle = 'blue';
+            ctx.beginPath();
+            ctx.ellipse(20, 45, 15, 20, 0, 0, 230 * Math.PI/180);
+            ctx.fill();
+        });
+        drawOnCanvas("exampleArcsCanvas", function(ctx, el){
+            //red stroked arc
+            ctx.scale(2.5, 2.6);
+            ctx.translate(0, -5);
+            ctx.strokeStyle = 'red';
+            ctx.beginPath();
+            ctx.arc(15, 20, 10, 0, 230 * Math.PI/180);
+            ctx.stroke();
+            
+            //creating a blue filled arc
+            ctx.fillStyle = 'blue';
+            ctx.beginPath();
+            ctx.arc(45, 20, 10, 0, 230 * Math.PI/180);
+            ctx.fill();
+            
+            //creating a pie-shaped green arc
+            ctx.fillStyle = 'green';
+            ctx.beginPath();
+            ctx.moveTo(30, 40);
+            ctx.arc(30, 40, 10, 0, 230 * Math.PI/180);
+            ctx.fill();
+        });
+        drawOnCanvas("arcToVisualization", function(ctx, el){
+            //styling stuff
+            ctx.scale(2, 2);
+            ctx.translate(-13, 0);
+            ctx.fillStyle = 'red';
+            ctx.strokeStyle = 'blue';
+            
+            //drawing the lines tangent to the arc:
+            ctx.strokeStyle = 'black';
+            ctx.beginPath();
+            ctx.moveTo(20, 20);
+            ctx.lineTo(30, 45);
+            ctx.lineTo(60, 15);
+            ctx.stroke();
+            
+            //highlighting the control points (red) and the current point (blue)
+            ctx.beginPath();
+            ctx.arc(30, 45, 3, 0, Math.PI * 2);
+            ctx.arc(60, 15, 3, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = 'blue';
+            ctx.beginPath();
+            ctx.arc(20, 20, 3, 0, Math.PI * 2);
+            ctx.fill();
+            
+            //drawing the arc
+            ctx.strokeStyle = 'blue';
+            ctx.beginPath();
+            ctx.moveTo(20, 20);
+            ctx.arcTo(30, 45, 60, 15, 15);
+            ctx.stroke();
+        });
+        drawOnCanvas("lineStrokeExample", function(ctx, el){
+            //styling stuff
+            ctx.scale(1.5, 1.5);
+            ctx.translate(-4, 0);
+            ctx.strokeStyle = 'black';
+            ctx.strokeWidth = 2;
+            
+            //[10, 5] line
+            ctx.setLineDash([10, 5]);
+            ctx.beginPath();
+            ctx.moveTo(10, 10);
+            ctx.lineTo(100, 10);
+            ctx.stroke();
+            
+            //[15, 3, 3, 3] line
+            ctx.setLineDash([15, 3, 3, 3]);
+            ctx.beginPath();
+            ctx.moveTo(10, 20);
+            ctx.lineTo(100, 20);
+            ctx.stroke();
+            
+            //[20, 3, 3] line
+            ctx.setLineDash([20, 3, 3]);
+            ctx.beginPath();
+            ctx.moveTo(10, 30);
+            ctx.lineTo(100, 30);
+            ctx.stroke();
+        });
+        //}
+        //}
+        
+        //setting up code blocks {
+        //prettifying functions
+        var indentCode = (function(){
+            var regs = {
+                "htmlNewReg": new RegExp("<(?! )[^!/\\n]*?>(?![^<\\n]*?</.*?>)|\\n</.*?>|\\n", "g"),
+                "jsNewReg": new RegExp("{(?![^}\\n]*?})|\\n[^{\\n]*?}|\\n", "g"),
+            };
+            var ltArrowReg = new RegExp("<", "g"), gtArrowReg = new RegExp(">", "g");
+            
+            //indenting function
+            return function(str, type){
+                //current indent variable
+                var curIndent = "";
+                
+                //new string to manipulate
+                var newString = str;
+                
+                //replacing \\n with literal new line characters
+                newString = newString.split("\\n").join("\n");
+                
+                //getting regs and opening/closing tags based on type
+                var reg = regs[type === "HTML" ? "htmlNewReg":"jsNewReg"],
+                opening = type === "HTML" ? "<":"{", closing = type === "HTML" ? "</":"}";
+                
+                //editing string
+                while((arr = reg.exec(newString)) !== null){
+                    //decreasing indent with closing tags
+                    if(arr[0].includes(closing)){
+                        curIndent = curIndent.substring(0, curIndent.length - 3);
+                    }
+                    
+                    //adding indent with opening tags (only < tag and not </, or { for JS/CSS)
+                    else if(arr[0].includes(opening)){
+                        curIndent += "   ";
+                    }
+                    
+                    //editing string to include extra spaces
+                    if(arr[0].includes("\n")){
+                        newString = newString.substring(0, arr.index + 1) + curIndent + newString.substring(arr.index + 1, newString.length);
+                    }
+                }
+                
+                //replacing < and > with the HTML characters
+                if(type === "HTML"){
+                    newString = newString.replace(ltArrowReg, "&lt;").replace(gtArrowReg, "&gt;");
+                }
+                
+                //returning the new string
+                return newString;
+            };
+        })();
+        var syntaxHighlight = (function(){
+            //regular expressions
+            var regExps = {
+                "HTML": {
+                    "string": {
+                        reg: new RegExp("'[^'\n]*?'", "g"),
+                        color: "rgb(227, 186, 82)",
+                    },
+                    "tag": {
+                        reg: new RegExp("\\&lt;(?!!).*?/*\\&gt;|\\&lt;/.*?\\&gt;", "g"),
+                        color: "rgb(32, 37, 97)"
+                    },
+                    "comment": {
+                        reg: new RegExp("\\&lt;!--[^]*?--\\&gt;", "gm"),
+                        color: "rgb(113, 184, 107)"
+                    }
+                },
+                "CSS": {
+                    "string": {
+                        reg: new RegExp("\"[^\"]*?\"|'[^']*?'", "g"),
+                        color: "rgb(224, 188, 103)"
+                    },
+                    "number": {
+                        reg: new RegExp("\\b\\d*\\.?\\d+[\\w%]*", "g"),
+                        color: "rgb(11, 85, 189)",
+                    },
+                    "pseudoelements": {
+                        reg: new RegExp("::?[\\w-]+", "g"),
+                        color: "rgb(104, 199, 182)"
+                    },
+                    "elements": {
+                        reg: new RegExp("[\\w,.\\# ->+~]+(?= *?{)", "g"),
+                        color: "rgb(194, 52, 52)"
+                    },
+                    "class": {
+                        reg: new RegExp("\\.[^\\d][\\w-]+", "g"),
+                        color: "rgb(72, 180, 194)"
+                    },
+                    "id": {
+                        reg: new RegExp("#[\\w-]+", "g"),
+                        color: "rgb(0, 45, 194)"
+                    },
+                    "property": {
+                        reg: new RegExp("[\\w-]+?:", "g"),
+                        color: "rgb(112, 188, 224)"
+                    },
+                    "function": {
+                        reg: new RegExp("[\\w-]+?(?=\\()", "g"),
+                        color: "rgb(61, 79, 92)"
+                    },
+                    "keywords": {
+                        reg: new RegExp("red|orange|yellow|gold|green|blue|teal|purple|white|black|absolute|relative|hidden|all|none|both|linear|ease|ease-in-out|ease-in|ease-out|left|top|bottom|right|center|block|inline|inline-block|flex|inline-flex|forwards|backwards|initial|inherit|infinite|justify|pointer|repeat|no-repeat|solid|dotted|dashed|transparent", "g"),
+                        color: "rgb(104, 209, 39)"
+                    },
+                    "comment": {
+                        reg: new RegExp("/\\*[^]*?\\*/", "gm"),
+                        color: "rgb(116, 194, 109)"
+                    }
+                },
+                "JS": {
+                    "string": {
+                        reg: new RegExp("\"[^\"\n]*?\"|'[^'\n]*?'", "g"),
+                        color: "rgb(152, 207, 71)"
+                    },
+                    "number": {
+                        reg: new RegExp("\\d*?\\.?\\d+\\w?", "g"),
+                        color: "rgb(0, 115, 186)"
+                    },
+                    "operator": {
+                        reg: new RegExp("\\*(?!/)|\\+|\\-|\\/(?![a-zA-Z/\\*])|\\+=|\\-=|\\*=|/=|===|!==|=(?! \"specialCode\\w*?\")", "g"),
+                        color: "rgb(112, 112, 112)"
+                    },
+                    "keyword": {
+                        reg: new RegExp("\\bvar|for|if|function|new", "g"),
+                        color: "rgb(38, 53, 171)",
+                    },
+                    "specialWords": {
+                        reg: new RegExp("\\bnull|undefined|true|false|NaN", "g"),
+                        color: "rgb(88, 152, 201)"
+                    },
+                    "documentThis": {
+                        reg: new RegExp("document(?=\\.)|\\bthis|Function|String|Object|Array|Date|Number|Boolean|Math", "g"),
+                        color: "rgb(75, 177, 179)"
+                    },
+                    "method": {
+                        reg: new RegExp("\\.\\w+(?=\\()", "g"),
+                        color: "rgb(125, 149, 158)"
+                    },
+                    "comment": {
+                        reg: new RegExp("//.*", "g"),
+                        color: "rgb(116, 196, 111)"
+                    },
+                    "multicomment": {
+                        reg: new RegExp("/\\*[^]*?\\*/", "gm"),
+                        color: "rgb(91, 150, 72)"
+                    }
+                }
+            };
+            var doubleSlashReg = new RegExp("//", "g");
+            
+            //creating match functions to use when highlighting syntax
+            var createMatchFunc = function(type, name){
+                var col = regExps[type][name].color;
+                if(name === "string"){
+                    return function(match){
+                        //html class name string detection help--if the string detected is a class name, we know it's part of the styling code and we shouldn't touch it
+                        for(var j in regExps[type]){
+                            if(match === type + j){
+                                return match;
+                            }
+                        }
+                        
+                        //make sure there's no double slashes (//) that might trigger a comment detection
+                        match = match.replace(doubleSlashReg, "&sol;&sol;");
+                        
+                        //otherwise, just return string
+                        return "<span class = \"specialCode" + type + name + "\">" + match + "</span>";
+                    };
+                }
+                return function(match){
+                    return "<span class = \"specialCode" + type + name + "\">" + match + "</span>";
+                };
+            };
+            
+            //adding styling colors and match functions
+            var newStyle = document.createElement("style");
+            for(var i in regExps){
+                for(var j in regExps[i]){
+                    regExps[i][j].matchFunc = createMatchFunc(i, j);
+                    newStyle.innerHTML += "\n.specialCode" + i + j + " { color: " + regExps[i][j].color + "; }";
+                }
+            }
+            document.getElementsByTagName("head")[0].appendChild(newStyle);
+            
+            //remove HTML function
+            var removeHTML = function(string){
+                var tempDiv = document.createElement("div");
+                tempDiv.innerHTML = string;
+                return tempDiv.textContent;
+            };
+            var removeHTMLinType = function(type, div){
+                var arr = div.getElementsByClassName("specialCode" + type);
+                for(var i = 0; i < arr.length; i++){
+                    arr[i].textContent = removeHTML(arr[i].innerHTML);
+                }
+            };
+            
+            //actual function that puts it all together
+            return function(str, type){
+                //looping through regexps
+                var newString = str;
+                for(var i in regExps[type]){
+                    newString = newString.replace(regExps[type][i].reg, regExps[type][i].matchFunc);
+                }
+                
+                //clearing all elements in strings (with temporary div)
+                var dummyDiv = document.createElement("div");
+                dummyDiv.innerHTML = newString;
+                removeHTMLinType(type + "string", dummyDiv);
+                if(type === "JS"){
+                    removeHTMLinType("JScomment", dummyDiv);
+                    removeHTMLinType("JSmulticomment", dummyDiv);
+                }
+                else if(type === "CSS"){
+                    removeHTMLinType("CSScomment", dummyDiv)
+                }
+                else {
+                    removeHTMLinType("HTMLcomment", dummyDiv);
+                }
+                newString = dummyDiv.innerHTML;
+                
+                //return string
+                return newString;
+            };
+        })();
+        
+        //creating code block functions {
+        //appending code block function
+        function createCodeBlock(block){
+            //prettified formatting for code
+            var prettified = indentCode(block.dataset.code, block.dataset.codeType || "HTML");
+            prettified = syntaxHighlight(prettified, block.dataset.codeType || "HTML");
+            
+            //creating a new pre element and code element
+            var newPre = document.createElement("pre"),
+            newCode = document.createElement("code");
+            newCode.innerHTML = prettified;
+            newPre.appendChild(newCode);
+            
+            //appending it to parent element
+            block.parentNode.replaceChild(newPre, block);
+        };
+        
+        //putting it all together
+        (function(){
+            //getting code blocks
+            var codeBlocks = document.getElementsByClassName("codeBlock"),
+            index = codeBlocks.length - 1;
+            
+            //function to create code blocks one by one
+            var runCode = function(){
+                //load block and update index
+                createCodeBlock(codeBlocks[index]);
+                index--;
+                
+                //cancel animation frame before requesting another one if we aren't done
+                window.cancelAnimationFrame(runCode);
+                if(index >= 0){
+                    window.requestAnimationFrame(runCode);
+                }
+            };
+            window.requestAnimationFrame(runCode);
+        })();
+        //}
+        //}
+        
+        //creating internal page links {
+        var internalPageLinks = document.getElementsByClassName("ipageLink");
+        function createInternalPageLinkFunction(link){
+            var target = document.getElementById(link.dataset.to), targetY = target.getBoundingClientRect().top;
+            return function(){
+                window.scroll({ top: targetY, behavior: "smooth" });
+            };
+        };
+        for(var i = 0; i < internalPageLinks.length; i++){
+            var clickFunc = createInternalPageLinkFunction(internalPageLinks[i]);
+            internalPageLinks[i].addEventListener("click", clickFunc);
+        }
+        //}
+        
+        //initial page change {
+        var allPages = document.getElementsByClassName("page");
+        for(var i = 0; i < allPages.length; i++){
+            if(i !== 0){
+                allPages[i].style.display = "none";
+            }
+        }
+        window.scroll(0, 0);
+        //}
+    </script>
+    
+    <!--script for a better thumbnail (thanks to Bluebird)-->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/0.4.1/html2canvas.js"></script>
+    <script>
+        //displaying thumbnail when saving
+        var thumbnailDiv = document.getElementById("thumbnail");
+        window.addEventListener("keydown", function(e){
+            if(e.keyCode === 83){
+                thumbnailDiv.style.display = "flex";
+            }
+            else if(e.keyCode === 65){
+                thumbnailDiv.style.display = "none";
+            }
+        });
+        
+        //credit to Bluebird for the rest of this (handling stuff on save using the HTML2Canvas library to capture screen)
+        var save = function(){
+            html2canvas(document.body, {
+                onrendered: function(canvas){
+                    b64Img = canvas.toDataURL();
+                    window.top.postMessage(b64Img, "https://www.khanacademy.org/");
+                },
+                allowTaint: false,
+                useCORS: true,
+                width: document.documentElement.clientWidth,
+                height: document.documentElement.clientWidth
+            });
+        };
+        var handleSave = function(e){
+            if(JSON.parse(e.data).screenshot){
+                window.setTimeout(function(){
+                    save();
+                }, 1000);
+            }
+        };
+        window.parent.savers = window.parent.savers || 0;
+        window.parent.addEventListener('message', handleSave);
+        window.parent.savers += 1;
+        for(window.parent.savers; window.parent.savers > 1; window.parent.savers -= 1){
+            window.parent.removeEventListener('message', handleSave);
+        }
+    </script>
+</html>
